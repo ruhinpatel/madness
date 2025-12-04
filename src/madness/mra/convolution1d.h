@@ -29,6 +29,13 @@
   fax:   865-572-0680
 */
 
+/* Overview: One-dimensional convolution utilities for multiresolution wavelet
+   functions, enabling kernel-based filtering and Green's function application
+   along a single axis. Intended for adaptive resolutions where operations
+   should follow MADNESS Function trees instead of fixed grids. Typical usage
+   constructs convolution operators from user-defined kernels and applies them
+   to Legendre expansions while preserving requested accuracy. */
+
 #ifndef MADNESS_MRA_CONVOLUTION1D_H__INCLUDED
 #define MADNESS_MRA_CONVOLUTION1D_H__INCLUDED
 

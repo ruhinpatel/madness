@@ -31,6 +31,11 @@
   $Id$
 */
 
+/* Test Purpose: Validates periodic differentiation (`pdiff`) across a periodic
+   box, ensuring wrapped derivatives respect periodic boundaries in multiple
+   dimensions. Covers terminology around domain length `L`, dimensionality, and
+   periodic boundary handling used by MADNESS Function operations. */
+
 
 #include <madness/mra/mra.h>
 #include <madness/constants.h>

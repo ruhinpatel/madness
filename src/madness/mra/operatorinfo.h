@@ -2,6 +2,11 @@
 // Created by Florian Bischoff on 11/2/23.
 //
 
+/* Overview: Enumerations and helper utilities describing operator types used
+   in MADNESS (e.g., Coulomb, Gaussian, F12). Intended to provide lightweight
+   metadata about operator kernels so factories and diagnostics can reason
+   about their characteristics. Typical usage tags constructed operators with
+   an `OpType` to drive downstream logic or reporting. */
 #ifndef MADNESS_OPERATORINFO_H
 #define MADNESS_OPERATORINFO_H
 

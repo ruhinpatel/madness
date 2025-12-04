@@ -32,6 +32,12 @@
   $Id: test.cc 257 2007-06-25 19:09:38Z HartmanBaker $
 */
 
+/* Test Purpose: Runs small quantum-mechanics benchmarks (e.g., oscillator and
+   hydrogenic problems) using MADNESS Function representations to confirm
+   operator setup, eigenvalue estimates, and normalization conventions. Uses
+   terminology common to QM demos: orbitals, potentials, and energy residuals.
+*/
+
 /// \file testsuite.cc
 /// \brief The QA/test suite for Function
 

@@ -30,6 +30,12 @@
 
   $Id$
 */
+/* Overview: Central typedefs for common MADNESS Function and operator types,
+   simplifying template-heavy interfaces and improving interoperability across
+   modules. Intended to provide a single place to reference frequently used
+   Function signatures, operator maps, and container types. Typical usage is to
+   include this header when wiring algorithms together so code can use concise
+   aliases rather than verbose templates. */
 #ifndef MADNESS_MRA_FUNCTYPEDEFS_H__INCLUDED
 #define MADNESS_MRA_FUNCTYPEDEFS_H__INCLUDED
 

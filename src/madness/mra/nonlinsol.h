@@ -31,6 +31,13 @@
   $Id$
 */
 
+/* Overview: Nonlinear equation solver built on Krylov subspace iterations for
+   use with MADNESS function representations. Intended to provide a simple
+   framework for solving F(x)=0 where residuals involve multiresolution
+   operators. Typical usage constructs a solver instance, supplies function and
+   Jacobian evaluations, and iterates to convergence while leveraging MADNESS
+   distributed infrastructure. */
+
 #ifndef MADNESS_EXAMPLES_NONLINSOL_H__INCLUDED
 #define MADNESS_EXAMPLES_NONLINSOL_H__INCLUDED
 

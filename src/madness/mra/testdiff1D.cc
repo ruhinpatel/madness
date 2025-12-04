@@ -1,3 +1,7 @@
+/* Test Purpose: Verifies one-dimensional differentiation utilities by applying
+   `diff()` to simple functions and comparing against analytic derivatives,
+   ensuring terminology like order and refinement tolerance are honored. */
+
 /// \file testdiff1D.cc
 /// \brief testing for diff() in 1D
 

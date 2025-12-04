@@ -31,6 +31,13 @@
   $Id$
 */
 
+/* Overview: Shared Function metadata container used throughout the MADNESS
+   multiresolution library, storing tolerances, dimensionality, and allocator
+   details for Function instances. Intended to centralize configuration so
+   Function copies remain lightweight while referring to common settings.
+   Typical usage is internal—constructed via FunctionFactory—and then accessed
+   by Function implementations to coordinate adaptive refinement policy. */
+
 #include <madness/mra/funcdefaults.h>
 
 #ifndef FUNCTIONCOMMONDATA_H_

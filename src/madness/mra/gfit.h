@@ -32,6 +32,13 @@
  $Id: key.h 2907 2012-06-14 10:15:05Z 3ru6ruWu $
  */
 
+/* Overview: Gaussian fitting utilities that approximate isotropic kernels with
+   controlled-precision sums of Gaussians. Intended to accelerate convolutions
+   and operator applications by replacing expensive kernel evaluations with
+   separable Gaussian terms. Typical usage fits potentials like Coulomb or
+   Yukawa and feeds the resulting coefficients into convolution-based operator
+   builders within MADNESS. */
+
 #ifndef MADNESS_MRA_GFIT_H__INCLUDED
 #define MADNESS_MRA_GFIT_H__INCLUDED
 

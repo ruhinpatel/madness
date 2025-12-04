@@ -1,3 +1,7 @@
+/* Test Purpose: Checks two-dimensional differentiation accuracy and stability
+   for MADNESS Functions, comparing diff() results against analytic references
+   while covering refinement and boundary behavior. */
+
 /// \file testdiff2D.cc
 /// \brief testing for diff() in 2D
 

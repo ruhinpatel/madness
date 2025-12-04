@@ -1,3 +1,7 @@
+/* Test Purpose: Exercises the nonlinear solver utilities by solving simple
+   scalar equations, ensuring iteration control, convergence checks, and
+   tolerance handling work as expected. */
+
 #include <iostream>
 #include <madness/mra/nonlinsol.h>
 #include <cmath>

@@ -29,6 +29,13 @@
   fax:   865-572-0680
 */
 
+/* Overview: Internal implementation header for MADNESS multiresolution
+   algorithms, pulled only by the staged mraX.cc compilation units. Intended to
+   house templated and inlined machinery that underpins Function operations,
+   operator assembly, and adaptive refinement logic. Typical usage is indirect;
+   application code includes mra.h while these details remain internal to the
+   build. */
+
 #ifndef MADNESS_MRA_MRAIMPL_H__INCLUDED
 #define MADNESS_MRA_MRAIMPL_H__INCLUDED
 

@@ -31,6 +31,13 @@
   $Id$
 */
 
+/* Overview: Legacy vector-of-Function utilities complementing vmra.h, defining
+   operations on collections of MADNESS Functions with shared grids. Intended
+   to support multi-component calculations that predate newer vector
+   abstractions. Typical usage mirrors vmra.h: include this header when
+   manipulating coordinated sets of Functions and applying operators across
+   them. */
+
 #ifndef MADNESS_MRA_VMRA_H__INCLUDED
 #define MADNESS_MRA_VMRA_H__INCLUDED
 

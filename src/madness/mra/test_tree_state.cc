@@ -2,6 +2,9 @@
 // Created by Florian Bischoff on 9/28/23.
 //
 
+/* Test Purpose: Ensures tree state serialization/restoration works, verifying
+   that saved multiresolution trees can be reconstructed with identical
+   refinement and data across runs. */
 #include<madness.h>
 #include<test_utilities.h>
 

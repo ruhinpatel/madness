@@ -28,6 +28,12 @@
   tel:   865-241-3937
   fax:   865-572-0680
 */
+/* Overview: Default parameter helpers for MADNESS Function objects, collecting
+   common tolerance, refinement, and threading settings in one place. Intended
+   to provide consistent initialization for new functions and operators rather
+   than scattering hard-coded defaults. Typical usage imports these defaults
+   when constructing FunctionFactories or solvers, allowing applications to
+   override a small set of configuration knobs. */
 
 #ifndef MADNESS_MRA_FUNCDEFAULTS_H__INCLUDED
 #define MADNESS_MRA_FUNCDEFAULTS_H__INCLUDED

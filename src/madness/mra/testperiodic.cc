@@ -29,6 +29,11 @@
   fax:   865-572-0680
 */
 
+/* Test Purpose: End-to-end verification of periodic function support,
+   including projection, convolution, and differentiation on periodic domains.
+   Ensures terminology around periods, wrapping, and grid extents matches the
+   implemented behavior. */
+
 /// \file testperiodic.cc
 /// \brief test periodic convolutiosn
 

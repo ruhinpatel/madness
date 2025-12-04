@@ -2,6 +2,9 @@
 // Created by Florian Bischoff on 1/9/25.
 //
 
+/* Test Purpose: Checks the memory measurement utilities, confirming per-world
+   Function memory accounting reports consistent totals across different
+   allocations. */
 #include<madness/mra/memory_measurement.h>
 #include<madness/world/test_utilities.h>
 #include<madness/mra/mra.h>

@@ -32,6 +32,11 @@
   $Id$
 */
 
+/* Test Purpose: Checks unary operator behavior on MADNESS Functions—such as
+   negation, scaling, and absolute value—to ensure coefficient transforms and
+   refinement bookkeeping remain correct. Terminology aligns with Function
+   algebra semantics used elsewhere in the library. */
+
 /// \file testunaryop.cc
 /// \brief test a unary op
 

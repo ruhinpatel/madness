@@ -30,6 +30,12 @@
 
   $Id$
 */
+
+/* Overview: Distributed load-balancing support for MADNESS, managing queues
+   and work redistribution to smooth adaptive workload across processes.
+   Intended to mitigate imbalance introduced by heterogeneous refinement of
+   MRA trees. Typical usage integrates these routines into task scheduling to
+   migrate units of work dynamically based on measured or estimated cost. */
 #ifndef MADNESS_MRA_IBDEUX_H__INCLUDED
 #define MADNESS_MRA_IBDEUX_H__INCLUDED
 

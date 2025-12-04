@@ -31,6 +31,14 @@
   $Id$
  */
 
+/* Overview: Factory utilities for constructing MADNESS Function instances from
+   different sources, wrapping elementary functions, composite interfaces, and
+   on-demand coefficient providers. Intended to decouple Function creation from
+   application code while honoring shared defaults and refinement policies.
+   Typical usage selects an interface (e.g., analytic functor, electron
+   repulsion provider) and passes it to FunctionFactory to obtain Functions
+   ready for adaptive computation. */
+
 /// \file function_factory.h
 /// Holds machinery to set up Functions/FuncImpls using various Factories and Interfaces
 

@@ -29,6 +29,12 @@
  fax:   865-572-0680
 */
 
+/* Overview: Multidimensional key representation for MADNESS MRA trees,
+   encoding level and index information used to identify nodes and neighbors.
+   Intended to standardize addressing of tree elements across operators,
+   caches, and communication routines. Typical usage constructs Keys when
+   traversing trees, computing neighbors, or hashing node identities. */
+
 #ifndef MADNESS_MRA_KEY_H__INCLUDED
 #define MADNESS_MRA_KEY_H__INCLUDED
 

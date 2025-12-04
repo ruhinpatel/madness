@@ -30,6 +30,12 @@
 
   $Id$
 */
+/* Overview: Vectorized multiresolution functions, defining containers and
+   operations on collections of MADNESS Function objects. Intended for
+   algorithms that manipulate multiple coupled functions (e.g., spin channels
+   or component fields) with shared refinement structure. Typical usage
+   leverages these utilities to apply operators, norms, or refinement actions
+   across a vector of Functions in a coordinated way. */
 #ifndef MADNESS_MRA_VMRA_H__INCLUDED
 #define MADNESS_MRA_VMRA_H__INCLUDED
 

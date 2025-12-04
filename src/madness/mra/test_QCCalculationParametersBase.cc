@@ -5,6 +5,10 @@
  *      Author: fbischoff
  */
 
+/* Test Purpose: Confirms quantum-chemistry calculation parameter handling,
+   exercising parsing, defaults, and reporting in QCCalculationParametersBase
+   to ensure user inputs map to stored settings as expected. */
+
 
 
 #include"QCCalculationParametersBase.h"

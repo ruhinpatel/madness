@@ -1,3 +1,7 @@
+/* Test Purpose: Verifies generalized AXPY extensions for MADNESS Functions,
+   checking scaling and accumulation helpers on adaptive trees. Ensures
+   terminology around linear combinations (alpha, beta) maps correctly to
+   function operations. */
 
 #include <madness/mra/mra.h>
 

@@ -5,6 +5,10 @@
  *      Author: fbischoff
  */
 
+/* Test Purpose: Ensures cloud storage abstractions for distributing task data
+   operate correctly within MRA tests, verifying insertion, retrieval, and
+   consistency across worlds. */
+
 #include<madness/mra/mra.h>
 #include<madness/world/cloud.h>
 #include<madness/mra/macrotaskq.h>

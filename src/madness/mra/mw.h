@@ -29,6 +29,13 @@
   fax:   865-572-0680
 */
 
+/* Overview: Lightweight multiresolution wavelet utilities, offering a compact
+   interface around MADNESS Function types for exploratory or pedagogical use.
+   Intended for small-scale experiments where users manipulate wavelet
+   expansions directly without the full application framework. Typical usage is
+   to include this header in prototype codes to create Functions, apply simple
+   operators, and observe refinement behavior. */
+
 
 #ifndef MADNESS_MRA_MW_H__INCLUDED
 #define MADNESS_MRA_MW_H__INCLUDED

@@ -30,6 +30,12 @@
 
   $Id$
 */
+/* Overview: Lightweight cache for storing computed values within MADNESS
+   operations, providing a simple key/value store with reuse awareness.
+   Intended to avoid redundant evaluations in operator application or function
+   traversal without introducing heavy dependencies. Typical usage keeps a
+   SimpleCache alongside algorithms that revisit the same Keys or indices,
+   fetching or inserting results as needed. */
 #ifndef MADNESS_MRA_SIMPLECACHE_H__INCLUDED
 #define MADNESS_MRA_SIMPLECACHE_H__INCLUDED
 

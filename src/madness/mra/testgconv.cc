@@ -32,6 +32,11 @@
   $Id$
 */
 
+/* Test Purpose: Checks Gaussian convolution routines by applying Gaussian *
+   polynomial kernels to MADNESS Functions and comparing with expected analytic
+   values. Terminology mirrors convolution setup (moments, orders) while
+   verifying adaptive refinement controls error. */
+
 /// \file mra/testgconv.cc
 /// \brief Test convolution with Gaussian * polyn
 

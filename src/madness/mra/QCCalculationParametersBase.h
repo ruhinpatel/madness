@@ -5,6 +5,12 @@
  *      Author: fbischoff
  */
 
+/* Overview: Base class for quantum chemistry calculation parameters shared by
+   MADNESS applications, encapsulating parsing, storage, and reporting of
+   user-specified options. Intended to standardize how chemical drivers obtain
+   tolerances, model settings, and algorithmic choices. Typical usage derives
+   a specialized parameter set, registers known keys, and uses the base helpers
+   to read values from input or command-line sources. */
 #ifndef SRC_APPS_CHEM_QCCALCULATIONPARAMETERSBASE_H_
 #define SRC_APPS_CHEM_QCCALCULATIONPARAMETERSBASE_H_
 

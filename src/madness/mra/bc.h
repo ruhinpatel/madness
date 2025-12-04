@@ -28,6 +28,12 @@
   tel:   865-241-3937
   fax:   865-572-0680
 */
+/* Overview: Boundary condition definitions for multiresolution functions,
+   encapsulating periodic, Dirichlet, and Neumann behavior for Legendre-based
+   trees. Intended so operators and solvers can request consistent edge
+   treatment without reimplementing boundary logic. Typical usage is to apply
+   a BoundaryConditions instance when constructing functions or operators so
+   grid truncation respects the chosen physics. */
 
 #ifndef MADNESS_MRA_BC_H__INCLUDED
 #define MADNESS_MRA_BC_H__INCLUDED

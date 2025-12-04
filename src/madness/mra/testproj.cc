@@ -32,6 +32,11 @@
   $Id$
 */
 
+/* Test Purpose: Probes projection quality and box-size dependence for MADNESS
+   Functions, projecting analytic targets and measuring error to ensure
+   tolerances and scaling behave as expected. Highlights terminology like box
+   size, projection order, and refinement thresholds. */
+
 /// \file testproj.cc
 /// \brief test box size dependence of projection etc.
 

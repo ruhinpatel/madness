@@ -30,6 +30,12 @@
 
   $Id$
 */
+/* Overview: Quantum-mechanics propagation and property routines leveraging
+   MADNESS multiresolution functions, including propagators and observable
+   evaluations. Intended for time-dependent or property-focused workflows that
+   operate on adaptive wavefunctions. Typical usage configures propagators or
+   convolution operators for electronic structure problems and calls the
+   provided helpers to advance states or compute expectation values. */
 #ifndef MADNESS_MRA_QMPROP_H__INCLUDED
 #define MADNESS_MRA_QMPROP_H__INCLUDED
 

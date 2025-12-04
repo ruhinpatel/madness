@@ -1,4 +1,6 @@
-
+/* Test Purpose: Verifies inner product extensions and related utilities for
+   MADNESS Functions, ensuring external specializations produce consistent
+   results across dimensions. */
 
 #include <madness/mra/mra.h>
 #include <array>

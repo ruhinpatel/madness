@@ -30,6 +30,11 @@
   
   $Id$
 */
+
+/* Test Purpose: Validates separated operator (sepop) implementations by
+   applying tensor-product kernels to test functions and checking separation
+   ranks and accuracy. Terminology emphasizes separation, convolution, and
+   error tolerances. */
 #include <madness/mra/mra.h>
 
 using std::cout;

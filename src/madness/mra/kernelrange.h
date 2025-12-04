@@ -2,6 +2,12 @@
 // Created by Eduard Valeyev on 1/3/25.
 //
 
+/* Overview: Kernel range restriction helper that wraps translation-invariant
+   kernels with optional cutoff or tapering functions. Intended to bound
+   convolution kernels in user coordinates for efficiency or physical realism
+   without altering calling code. Usage: configure a `KernelRange` with the
+   desired restriction type and apply it when building convolution operators so
+   evaluations honor the requested truncation. */
 #ifndef MADNESS_MRA_KERNELRANGE_H__INCLUDED
 #define MADNESS_MRA_KERNELRANGE_H__INCLUDED
 
