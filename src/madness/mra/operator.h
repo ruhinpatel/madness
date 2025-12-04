@@ -29,6 +29,13 @@
   fax:   865-572-0680
 */
 
+/* Overview: Core separated-operator implementation for MADNESS, supporting the
+   construction and application of operators built from low-rank tensor
+   products. Intended to provide efficient operator machinery (e.g., Poisson,
+   kinetic energy) compatible with adaptive Function trees. Typical usage
+   assembles operators from kernels or Gaussian fits and applies them to
+   Functions while respecting requested tolerances. */
+
 #ifndef MADNESS_MRA_OPERATOR_H__INCLUDED
 #define MADNESS_MRA_OPERATOR_H__INCLUDED
 

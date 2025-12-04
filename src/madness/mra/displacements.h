@@ -30,6 +30,12 @@
 
   $Id$
 */
+/* Overview: Displacement and translation tools for multiresolution functions,
+   providing helpers to offset coordinates and accumulate multipole-like
+   contributions on adaptive grids. Intended for modeling shifts in basis
+   functions and evaluating derivatives with respect to spatial movement
+   without rebuilding trees. Typical usage composes displacement operators
+   when applying forces, translations, or response property calculations. */
 #ifndef MADNESS_MRA_DISPLACEMENTS_H__INCLUDED
 #define MADNESS_MRA_DISPLACEMENTS_H__INCLUDED
 

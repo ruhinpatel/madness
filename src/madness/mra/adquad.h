@@ -30,6 +30,12 @@
 
   $Id$
 */
+/* Overview: Adaptive quadrature utilities for MADNESS Legendre-based functions,
+   providing refinement-aware integration on tensor-product grids within the MRA
+   framework. Intended for numerical integration of wavelet/Legendre expansions
+   where error control and automatic subdivision are needed. Typical use is to
+   construct integrators around Legendre trees to accumulate values while
+   respecting function tolerances rather than manually walking node data. */
 #ifndef MADNESS_MRA_ADQUAD_H__INCLUDED
 #define MADNESS_MRA_ADQUAD_H__INCLUDED
 

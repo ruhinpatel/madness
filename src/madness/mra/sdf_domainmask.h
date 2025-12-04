@@ -31,6 +31,13 @@
   $Id: sdf_shape.h 1792 2010-01-26 12:58:18Z rjharrison $
 */
 
+/* Overview: Signed-distance function and domain mask interfaces describing
+   geometric regions for adaptive meshing and operator masking within MADNESS.
+   Intended to let users define shapes and distance metrics that guide function
+   refinement or restrict computations. Typical usage implements these
+   interfaces for custom geometries, then applies them when constructing
+   Functions or operators to limit activity to chosen domains. */
+
 /*!
   \file mra/sdf_domainmask.h
   \brief Defines abstract interfaces and concrete classes signed distance

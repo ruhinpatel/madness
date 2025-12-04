@@ -32,6 +32,12 @@
   $Id$
 */
 
+/* Test Purpose: Validates the bound-state Helmholtz (BSH) operator machinery in
+   MADNESS by constructing kernels, applying convolutions, and checking
+   solutions against analytical expectations. Terminology mirrors operator
+   setup (screening, shifts) while ensuring adaptive refinement preserves
+   accuracy. */
+
 /// \file testbsh.cc
 /// \brief test the bsh operator
 

@@ -1,3 +1,9 @@
+/* Overview: Macro task queue abstraction that coordinates coarse-grained work
+   across MADNESS worlds, grouping lightweight task descriptors and scheduling
+   them on subworlds for better locality. Intended for algorithms that launch
+   many similar operations (e.g., derivative evaluations) while keeping data in
+   shared clouds. Usage: define a MacroTask derived type and submit instances to
+   the queue to distribute work among worlds. */
 /**
  \file macrotaskq.h
  \brief Declares the \c macrotaskq and MacroTaskBase classes

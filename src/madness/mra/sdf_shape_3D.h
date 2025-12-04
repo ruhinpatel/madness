@@ -31,6 +31,13 @@
   $Id$
 */
 
+/* Overview: Signed distance function implementations for common 3-D shapes,
+   supplying geometry primitives for domain masks and adaptive refinement in
+   volumetric simulations. Intended for 3-D MADNESS applications that need to
+   describe boundaries like planes, spheres, or boxes. Typical usage chooses a
+   shape implementation and applies it when constructing masks or refinement
+   criteria to confine computation to specific regions. */
+
 /**
   \file mra/sdf_shape_3D.h
   \brief Implements the SignedDFInterface for common 3-D geometric objects.

@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Test Purpose: Follow-on checks for sixth MRA compilation unit, covering
+   functions and operators introduced in mra6.cc to ensure consistency across
+   split translation units. */
+
 /// \file tensor/test.cc
 /// \brief New test code for Tensor class using Google unit test
 

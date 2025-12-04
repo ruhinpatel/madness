@@ -31,6 +31,14 @@
   $Id: function_factory_and_interface.h 3422 2014-03-24 09:16:15Z 3ru6ruWu $
 */
 
+/* Overview: Interfaces defining how external functors supply data to MADNESS
+   Function objects, including analytic functions, composite sources, and
+   two-electron integral providers. Intended to decouple value/derivative
+   generation from Function storage so physics-specific backends can plug into
+   adaptive multiresolution operations. Typical usage derives a concrete
+   interface implementing projection hooks and passes it into FunctionFactory
+   to instantiate Functions. */
+
 
 #ifndef MADNESS_MRA_FUNCTION_INTERFACE_H__INCLUDED
 #define MADNESS_MRA_FUNCTION_INTERFACE_H__INCLUDED

@@ -1,3 +1,7 @@
+/* Test Purpose: Exercises vector-of-Function utilities (vmra), applying
+   operations across collections to confirm synchronized refinement and
+   algebraic operations behave correctly. */
+
 #define NO_GENTENSOR
 #include <madness/mra/mra.h>
 #include <madness/mra/vmra.h>

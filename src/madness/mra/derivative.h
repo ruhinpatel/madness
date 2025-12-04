@@ -29,6 +29,13 @@
   fax:   865-572-0680
 */
 
+/* Overview: Differential operator support for MADNESS functions, constructing
+   adaptive derivative, gradient, and Laplacian operators over Legendre trees.
+   Intended to expose calculus operations that respect multiresolution
+   refinement and boundary conditions without reverting to uniform grids.
+   Typical usage builds derivative functors and applies them to Function
+   objects to evaluate spatial derivatives within PDE solvers. */
+
 #ifndef MADNESS_DERIVATIVE_H__INCLUDED
 #define MADNESS_DERIVATIVE_H__INCLUDED
 

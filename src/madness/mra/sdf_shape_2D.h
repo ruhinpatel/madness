@@ -31,6 +31,13 @@
   $Id$
 */
 
+/* Overview: Signed distance function implementations for common 2-D shapes
+   such as circles and polygons, providing geometry primitives for domain
+   masking and refinement control. Intended to support 2-D MADNESS simulations
+   that need geometric boundaries. Typical usage selects or subclasses one of
+   these shapes and supplies it to domain masks or refinement routines to
+   restrict computation to the desired region. */
+
 /**
   \file mra/sdf_shape_2D.h
   \brief Implements the SignedDFInterface for common 2-D geometric objects.

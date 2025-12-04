@@ -2,6 +2,11 @@
 // Created by Florian Bischoff on 2/16/25.
 //
 
+/* Overview: Memory measurement helpers for MADNESS functions, aggregating per-
+   world memory usage of FunctionImpl instances. Intended for diagnostics and
+   scaling studies to understand where adaptive trees consume resources.
+   Typical usage calls the provided routines after computations to report
+   memory footprints across ranks. */
 #ifndef MEMORY_MEASUREMENT_H
 #define MEMORY_MEASUREMENT_H
 

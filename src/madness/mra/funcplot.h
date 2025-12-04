@@ -28,6 +28,11 @@
   tel:   865-241-3937
   fax:   865-572-0680
 */
+/* Overview: Plotting helpers for MADNESS functions, exporting adaptive data to
+   visualization-friendly formats. Intended to simplify inspecting Function
+   values and refinement structure during development or debugging. Typical
+   usage converts Function objects into sampled grids or gnuplot streams to
+   produce quick plots without hand-writing traversal code. */
 
 #ifndef MADNESS_MRA_FUNCPLOT_H__INCLUDED
 #define MADNESS_MRA_FUNCPLOT_H__INCLUDED

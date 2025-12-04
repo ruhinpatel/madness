@@ -32,6 +32,11 @@
   $Id: test.cc 257 2007-06-25 19:09:38Z HartmanBaker $
 */
 
+/* Test Purpose: Main QA harness for MADNESS Function/MRA components, running a
+   battery of unit-style checks across operators, projections, and example
+   problems. Provides centralized execution and reporting to flag regressions
+   in multiresolution functionality. */
+
 /// \file testsuite.cc
 /// \brief The QA/test suite for Function
 

@@ -1,3 +1,7 @@
+/* Test Purpose: Exercises three-dimensional diff() behavior against analytic
+   expectations, ensuring gradient construction and adaptive refinement yield
+   correct derivatives for 3D functions. */
+
 /// \file testdiff3D.cc
 /// \brief testing for diff() in 3D
 

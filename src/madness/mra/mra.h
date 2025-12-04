@@ -29,6 +29,13 @@
   fax:   865-572-0680
 */
 
+/* Overview: Primary include for MADNESS multiresolution analysis, collecting
+   core Function interfaces, operator definitions, and initialization helpers
+   for adaptive Legendre representations. Intended as the entry point for
+   applications building or manipulating MADNESS functions and operators.
+   Typical usage includes this header after setting up a World to access the
+   Function API, tree operations, and associated utility types. */
+
 #ifndef MADNESS_MRA_MRA_H__INCLUDED
 #define MADNESS_MRA_MRA_H__INCLUDED
 

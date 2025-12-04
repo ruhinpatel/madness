@@ -2,6 +2,12 @@
 // Created by Florian Bischoff on 12/10/20.
 //
 
+/* Overview: Partitioning helpers for MADNESS macro-tasks, splitting batches of
+   work into balanced chunks for distributed execution. Intended to provide a
+   simple mechanism to distribute variadic task payloads across workers
+   according to configurable sizing rules. Typical usage constructs a
+   `MacrotaskPartitioner` to divide collections of task descriptors before
+   submitting them to the MADNESS runtime. */
 #ifndef MADNESS_MACROTASKPARTITIONER_H
 #define MADNESS_MACROTASKPARTITIONER_H
 

@@ -1,3 +1,7 @@
+/* Test Purpose: Regression for 1D differentiation edge cases, confirming the
+   diff() implementation behaves for alternate setups and guarding against
+   misuse of internal headers. */
+
 /// \file testdiff1Db.cc
 /// \brief testing for diff() in 1D
 

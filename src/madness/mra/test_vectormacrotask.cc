@@ -1,3 +1,6 @@
+/* Test Purpose: Covers macro task queue behavior when managing vector-based
+   tasks, ensuring submission, execution, and result gathering work across
+   multiple macrotasks. */
 /**
  \file test_vectormacrotask.cc
  \brief Tests the \c MacroTaskQ and MacroTask classes

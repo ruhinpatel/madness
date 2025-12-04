@@ -32,6 +32,12 @@
   $Id$
 */
 
+/* Test Purpose: Exercises six-dimensional MADNESS Function workflows—including
+   projections, convolutions, and Hartree products—to ensure multiresolution
+   accuracy and refinement policies behave as expected. Terminology follows
+   Function conventions (levels, keys, tolerances) while validating high-D
+   operations and regression cases. */
+
 /// \file test6.cc
 /// \brief test various functionality for 6d functions
 

@@ -29,6 +29,13 @@
   fax:   865-572-0680
 */
 
+/* Overview: Leaf-level operator definitions for MADNESS function trees,
+   providing actions that operate directly on leaf boxes including specialized
+   handling for cusp-enforcing refinements. Intended to encapsulate operations
+   that need fine-grained control of terminal nodes, such as F12-like
+   treatments or diagonal refinement. Typical usage is through higher-level
+   operator builders that apply these leaf operations during evaluation. */
+
 /*
 * Leafop.h
  *

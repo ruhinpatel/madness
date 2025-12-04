@@ -32,6 +32,11 @@
   $Id$
 */
 
+/* Test Purpose: Confirms periodic convolution operator behavior, validating
+   that wrapped domains and periodic kernels produce expected results for
+   MADNESS Functions. Terminology highlights periodicity and convolution
+   accuracy across boundary seams. */
+
 /// \file testper.cc
 /// \brief test the periodic convolution operator
 

@@ -32,6 +32,12 @@
   $Id$
 */
 
+/* Test Purpose: Confirms operator application along different spatial
+   directions, combining convolutions and differentiation to ensure directional
+   semantics match expectations across dimensions. Terminology mirrors operator
+   orientation (x/y/z axes) and separated representations while checking error
+   bounds. */
+
 /// \file testopdir.cc
 /// \brief test different operators in different directions
 

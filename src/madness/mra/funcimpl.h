@@ -28,6 +28,12 @@
   tel:   865-241-3937
   fax:   865-572-0680
 */
+/* Overview: Implementation utilities for MADNESS Function types, providing
+   shared mechanics for evaluating, refining, and manipulating Legendre-based
+   function trees. Intended to back the public Function interface while keeping
+   low-level operations reusable across dimensions and value types. Typical
+   usage is indirect via Function and FunctionFactory APIs, but helper routines
+   here define how adaptive refinement, projection, and threading behave. */
 
 #ifndef MADNESS_MRA_FUNCIMPL_H__INCLUDED
 #define MADNESS_MRA_FUNCIMPL_H__INCLUDED

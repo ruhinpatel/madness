@@ -32,6 +32,12 @@
   $Id$
 */
 
+/* Overview: Integer power utility used throughout MADNESS for compile-time and
+   runtime exponentiation helpers. Intended to provide a fast, generic power
+   function for small exponents in performance-critical paths. Typical usage is
+   via the templated `power` helpers when raising scalars to small integer
+   powers inside operator assembly or evaluation code. */
+
 
 #ifndef MADNESS_MRA_POWER_H__INCLUDED
 #define MADNESS_MRA_POWER_H__INCLUDED

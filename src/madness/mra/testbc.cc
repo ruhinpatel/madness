@@ -32,6 +32,12 @@
   $Id$
 */
 
+/* Test Purpose: Validates boundary-condition handling for MADNESS operators,
+   exercising spherical Dirichlet/Neumann enforcement and ensuring boundary
+   penalties integrate correctly with adaptive grids. Terminology uses MRA
+   function language (levels, projection) while checking that imposed
+   conditions persist through operator applications. */
+
 /// \file testbsh.cc
 /// \brief test the bsh operator
 

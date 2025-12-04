@@ -2,6 +2,12 @@
 // Created by Florian Bischoff on 2/10/21.
 //
 
+/* Overview: Lightweight command-line parser for MADNESS demos and drivers,
+   handling `--key=value` or `--key` flags without external dependencies.
+   Intended for quick parsing of loosely structured options where full CLI
+   libraries are unnecessary. Usage: construct `commandlineparser` with `argc`
+   and `argv` to populate `keyval`, then query or override defaults before
+   dispatching code paths. */
 #ifndef MADNESS_COMMANDLINEPARSER_H
 #define MADNESS_COMMANDLINEPARSER_H
 

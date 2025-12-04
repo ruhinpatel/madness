@@ -2,6 +2,9 @@
 // Created by Florian Bischoff on 5/17/21.
 //
 
+/* Test Purpose: Validates macrotask partitioning logic, ensuring tasks are
+   split and balanced across subworlds according to the partitioner rules.
+   Terminology references macrotasks, batches, and world topology. */
 #include<madness/mra/mra.h>
 #include<madness/mra/macrotaskpartitioner.h>
 #include<madness/world/test_utilities.h>

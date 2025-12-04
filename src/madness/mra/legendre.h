@@ -29,6 +29,13 @@
   fax:   865-572-0680
 */
 
+/* Overview: Legendre polynomial utilities forming the basis of MADNESS
+   multiresolution expansions, covering evaluation, quadrature, and transforms.
+   Intended as core math support for Function representations across spatial
+   dimensions. Typical usage is indirect through Function and operator code,
+   which relies on these routines for projection, refinement, and normalization
+   of Legendre coefficients. */
+
 
 #ifndef MADNESS_MRA_LEGENDRE_H__INCLUDED
 #define MADNESS_MRA_LEGENDRE_H__INCLUDED

@@ -29,6 +29,13 @@
   fax:   865-572-0680
 */
 
+/* Overview: Two-scale relation utilities for Legendre wavelets, providing the
+   refinement and scaling matrices used to connect parent and child basis
+   functions. Intended to support projection, restriction, and prolongation
+   operations in the multiresolution hierarchy. Typical usage accesses the
+   precomputed two-scale coefficients when performing refinement or
+   coarsening steps on Function data. */
+
 
 #ifndef MADNESS_MRA_TWOSCALE_H__INCLUDED
 #define MADNESS_MRA_TWOSCALE_H__INCLUDED

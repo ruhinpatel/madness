@@ -30,6 +30,11 @@
 
   $Id$
 */
+/* Overview: Helpers for iterating over index ranges used in MADNESS trees and
+   tensors, offering concise iteration over neighbor sets and block ranges.
+   Intended to replace hand-written nested loops when traversing adaptive
+   domains. Typical usage constructs IndexIterators to drive operations on
+   Function blocks, neighbor searches, or tensor windows. */
 #ifndef MADNESS_MRA_INDEXIT_H__INCLUDED
 #define MADNESS_MRA_INDEXIT_H__INCLUDED
 

@@ -1,3 +1,10 @@
+/* Overview: Alternative process map that partitions MADNESS trees using custom
+   cost functions, enabling finer control over how subtrees are assigned to
+   ranks. Intended for experiments with load balancing beyond the default
+   mapping strategies. Typical usage constructs `MyPmap` with a chosen mapping
+   type to distribute keys based on heuristic cost instead of simple round
+   robin. */
+
 // #include <madness/world/MADworld.h>
 // #include <madness/misc/misc.h>
 // #include <madness/tensor/tensor.h>
