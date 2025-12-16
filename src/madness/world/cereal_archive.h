@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Serialization adapters that bridge MADNESS archives with the
+   external Cereal library, enabling Cereal-compatible types to be read/written
+   through MADNESS archive interfaces. */
+
 #ifndef MADNESS_WORLD_CEREAL_ARCHIVE_H__INCLUDED
 #define MADNESS_WORLD_CEREAL_ARCHIVE_H__INCLUDED
 

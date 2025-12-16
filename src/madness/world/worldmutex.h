@@ -33,6 +33,9 @@
 #ifndef MADNESS_WORLD_WORLDMUTEX_H__INCLUDED
 #define MADNESS_WORLD_WORLDMUTEX_H__INCLUDED
 
+/* Overview: Mutex abstraction for MADNESS World, providing portable locking
+   primitives (including spinlocks) to protect shared data across threads. */
+
 #include <madness/madness_config.h>
 #include <pthread.h>
 #include <thread>

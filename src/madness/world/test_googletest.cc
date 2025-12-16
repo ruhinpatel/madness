@@ -25,9 +25,12 @@
   P.O. Box 2008, MS-6367
 
   email: harrisonrj@ornl.gov
-  tel:   865-241-3937
-  fax:   865-572-0680
+ tel:   865-241-3937
+ fax:   865-572-0680
 */
+
+/* Test Purpose: Ensures the GoogleTest harness links and runs within the
+   MADNESS build, serving as a minimal sanity check for gtest integration. */
 
 #include <madness/madness_config.h>
 

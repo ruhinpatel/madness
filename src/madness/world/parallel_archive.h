@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Parallel archive utilities that coordinate serialization across
+   multiple processes, layering on top of buffer/MPI archives to enable
+   collective-style archive operations. */
+
 #ifndef MADNESS_WORLD_PARALLEL_ARCHIVE_H__INCLUDED
 #define MADNESS_WORLD_PARALLEL_ARCHIVE_H__INCLUDED
 

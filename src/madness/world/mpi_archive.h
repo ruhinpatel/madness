@@ -29,6 +29,11 @@
   fax:   865-572-0680
 */
 
+/* Overview: MPI-aware archives that serialize MADNESS objects over communicators
+   using point-to-point sends/receives. Provides archive interfaces for sending
+   data without manual buffer management, enabling MPI transport to plug into
+   the standard serialization API. */
+
 /**
  \file mpi_archive.h
  \brief Implements archives to serialize data for MPI.

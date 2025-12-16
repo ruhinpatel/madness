@@ -29,6 +29,9 @@
   fax:   865-572-0680
 */
 
+/* Overview: Timing helpers wrapping platform-dependent timers, providing
+   stopwatch utilities and performance info hooks for MADNESS profiling. */
+
 /** 
  \file timers.h
  \brief Wrappers around platform dependent timers and performance info.

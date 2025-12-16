@@ -6,6 +6,10 @@
 
 */
 
+/* Overview: Cloud container for MADNESS that holds distributed objects and
+   allows transferring and caching records across worlds. Supports replication
+   and deferred cleanup of globally referenced data. */
+
 /**
  * TODO:  - delete container record upon caching if container is replicated
  */

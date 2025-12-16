@@ -29,6 +29,11 @@
   fax:   865-572-0680
  */
 
+/* Overview: Global operations layer for MADNESS Worlds, implementing collective
+   communication patterns (broadcast, reductions, scans, barriers) and
+   distributed data helpers built atop the active messaging/task queue stack.
+   Provides the primary high-level API for synchronizing data across ranks. */
+
 #ifndef MADNESS_WORLD_WORLDGOP_H__INCLUDED
 #define MADNESS_WORLD_WORLDGOP_H__INCLUDED
 
@@ -654,7 +659,10 @@ namespace madness {
 
     public:
 
-        // In the World constructor can ONLY rely on MPI and MPI being initialized
+        /// Construct the global-operations helper bound to a World.
+        ///
+        /// Only MPI is assumed initialized at this point; task queues and AM
+        /// wiring come from the World reference.
         WorldGopInterface(World& world) :
             world_(world), deferred_(new detail::DeferredCleanup()), debug_(false), max_reducebcast_msg_size_(initial_max_reducebcast_msg_size())
         { }

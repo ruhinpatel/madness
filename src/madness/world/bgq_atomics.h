@@ -9,6 +9,10 @@
  * In theory, this should work for any PowerPC system.  Need to verify on Blue Gene/P and POWER7. 
  */
 
+/* Overview: BlueGene/Q (PowerPC) inline atomics used by MADNESS for platforms
+   lacking std::atomic support, providing compare-and-swap and fetch-add
+   helpers on 64-bit integers. */
+
 #include <stdint.h>
 
 #ifndef __INLINE__

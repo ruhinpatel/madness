@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Text file stream archive adapters that serialize MADNESS objects to
+   human-readable text streams. Useful for simple inspection or interoperable
+   checkpoints where readability matters more than compactness. */
+
 #ifndef MADNESS_WORLD_TEXT_FSTREAM_ARCHIVE_H__INCLUDED
 #define MADNESS_WORLD_TEXT_FSTREAM_ARCHIVE_H__INCLUDED
 
@@ -51,6 +55,7 @@ namespace madness {
         /// @{
 
         /// Wraps an archive around a text filestream for output.
+        /// Output archive writing serialized data to a text fstream.
         class TextFstreamOutputArchive : public BaseOutputArchive {
             mutable std::ofstream os; ///< The filestream.
 
@@ -145,6 +150,7 @@ namespace madness {
 
 
         /// Wraps an archive around a text filestream for input.
+        /// Input archive reading serialized data from a text fstream.
         class TextFstreamInputArchive : public BaseInputArchive {
         private:
             mutable std::ifstream is; ///< The filestream.

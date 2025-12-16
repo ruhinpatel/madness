@@ -27,7 +27,11 @@
   email: harrisonrj@ornl.gov
   tel:   865-241-3937
   fax:   865-572-0680
- */
+*/
+
+/* Overview: Group abstraction for MADNESS, representing subsets of World ranks
+   with utilities to manage membership, translation, and collective operations
+   over those subsets. */
 
 #ifndef MADNESS_WORLD_GROUP_H__INCLUDED
 #define MADNESS_WORLD_GROUP_H__INCLUDED

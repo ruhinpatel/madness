@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Thin MPI wrapper for MADNESS World objects, exposing communicator
+   accessors, rank/size helpers, and initialization glue used by higher runtime
+   components. */
+
 #ifndef MADNESS_WORLD_WORLDMPI_H__INCLUDED
 #define MADNESS_WORLD_WORLDMPI_H__INCLUDED
 

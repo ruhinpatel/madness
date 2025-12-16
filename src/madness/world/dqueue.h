@@ -32,6 +32,10 @@
   $Id$
 */
 
+/* Overview: Simple double-ended queue container for MADNESS task scheduling,
+   providing push/pop operations on both ends without relying on std::deque and
+   tuned for small, fixed-capacity usage. */
+
 
 #ifndef MADNESS_WORLD_DQUEUE_H__INCLUDED
 #define MADNESS_WORLD_DQUEUE_H__INCLUDED

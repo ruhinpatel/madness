@@ -1,6 +1,11 @@
 #ifndef MAD_PARALLEL_DC_ARCHIVE_H_INCLUDED
 #define MAD_PARALLEL_DC_ARCHIVE_H_INCLUDED
 
+/* Overview: Distributed-cache archive adapters that write/read serialized
+   records into a WorldContainer-backed store across subworlds. Used to persist
+   archived data in the distributed cache while reusing vector archives for
+   the actual serialization. */
+
 #include <madness/world/MADworld.h>
 #include <madness/world/worlddc.h>
 #include <madness/world/vector_archive.h>

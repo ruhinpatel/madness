@@ -30,10 +30,14 @@
 */
 
 /**
- \file future.h
- \brief Implements \c Future and related items.
- \ingroup futures
+\file future.h
+\brief Implements \c Future and related items.
+\ingroup futures
 */
+
+/* Overview: MADNESS future/promise implementation for distributed tasks,
+   providing asynchronous result retrieval, remote references, and
+   synchronization primitives used across the task and RMI layers. */
 
 #ifndef MADNESS_WORLD_FUTURE_H__INCLUDED
 #define MADNESS_WORLD_FUTURE_H__INCLUDED

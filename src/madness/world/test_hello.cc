@@ -25,9 +25,12 @@
   P.O. Box 2008, MS-6367
 
   email: harrisonrj@ornl.gov
-  tel:   865-241-3937
-  fax:   865-572-0680
+ tel:   865-241-3937
+ fax:   865-572-0680
 */
+
+/* Test Purpose: Simple hello-world example to verify World initialization and
+   rank reporting. */
 
 #include <iostream>
 #include <madness/world/MADworld.h>

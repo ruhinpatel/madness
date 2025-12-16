@@ -28,6 +28,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Wrapper utilities for member function pointers, enabling them to be
+   treated uniformly as callable objects in MADNESS task submission and
+   serialization contexts. */
+
 /**
  \file mem_func_wrapper.h
  \brief Defines tools for encapsulating a pointer to a member function.

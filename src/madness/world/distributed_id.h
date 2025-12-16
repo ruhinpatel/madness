@@ -27,7 +27,11 @@
   email: harrisonrj@ornl.gov
   tel:   865-241-3937
   fax:   865-572-0680
- */
+*/
+
+/* Overview: Distributed identifier utility that assigns globally unique IDs
+   across MADNESS worlds, enabling consistent identification of distributed
+   objects and services. */
 
 #ifndef MADNESS_WORLD_DISTRIBUTED_ID_H__INCLUDED
 #define MADNESS_WORLD_DISTRIBUTED_ID_H__INCLUDED

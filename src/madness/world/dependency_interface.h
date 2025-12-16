@@ -30,10 +30,14 @@
 */
 
 /**
- \file dependency_interface.h
- \brief Defines \c DependencyInterface and \c CallbackInterface.
- \ingroup world
+\file dependency_interface.h
+\brief Defines \c DependencyInterface and \c CallbackInterface.
+\ingroup world
 */
+
+/* Overview: Dependency tracking interfaces for MADNESS tasks, letting tasks
+   register and signal dependencies so waiting code can be notified when work
+   completes. Used throughout the task queue and async infrastructure. */
 
 #ifndef MADNESS_WORLD_DEPENDENCY_INTERFACE_H__INCLUDED
 #define MADNESS_WORLD_DEPENDENCY_INTERFACE_H__INCLUDED

@@ -29,6 +29,12 @@
   fax:   865-572-0680
 */
 
+/* Overview: Task scheduling framework for MADNESS Worlds, defining task
+   wrappers and the WorldTaskQueue responsible for enqueuing, executing, and
+   synchronizing distributed work. Provides helpers for submitting functions,
+   member functions, and range-based tasks while coordinating with timers and
+   profiling. */
+
 /**
  \file world_task_queue.h
  \brief Defines \c TaskInterface and implements \c WorldTaskQueue and associated stuff.
@@ -445,9 +451,9 @@ namespace madness {
         /// \param[in,out] world The communication context.
         WorldTaskQueue(World& world);
 
-        /// Returns the number of pending tasks.
-
-        /// \return The number of pending tasks.
+        /// Query the number of pending tasks.
+        ///
+        /// \return The number of tasks not yet completed locally.
         size_t size() const {
             return nregistered;
         }
@@ -472,21 +478,12 @@ namespace madness {
             t->register_submit_callback();
         }
 
-        /// \todo Brief description needed.
-
-        /// \todo Descriptions needed.
-        /// \tparam fnT Description needed.
-        /// \tparam a1T Type of argument 1.
-        /// \tparam a2T Type of argument 2.
-        /// \tparam a3T Type of argument 3.
-        /// \tparam a4T Type of argument 4.
-        /// \tparam a5T Type of argument 5.
-        /// \tparam a6T Type of argument 6.
-        /// \tparam a7T Type of argument 7.
-        /// \tparam a8T Type of argument 8.
-        /// \tparam a9T Type of argument 9.
-        /// \param[in] t Description needed.
-        /// \return Description needed.
+        /// Enqueue a typed TaskFn and return its future.
+        ///
+        /// \tparam fnT Callable type wrapped by TaskFn.
+        /// \tparam a1T..a9T Argument types.
+        /// \param[in] t Heap-allocated TaskFn to submit.
+        /// \return Future representing the task result.
         template <typename fnT, typename a1T, typename a2T, typename a3T,
             typename a4T, typename a5T, typename a6T, typename a7T, typename a8T,
             typename a9T>
@@ -1378,9 +1375,7 @@ namespace madness {
 
     public:
 
-        /// Returns after all local tasks have completed.
-
-        /// While waiting, the calling thread will run tasks.
+        /// Wait until all local tasks have completed, running tasks while waiting.
         void fence() {
             try {
                 ThreadPool::await(ProbeAllDone(this), true);

@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Vector-backed archives that serialize MADNESS objects directly into
+   std::vector<byte> containers, providing simple dynamic-buffer storage used by
+   other archive adapters (buffer, distributed cache, parallel archives). */
+
 #ifndef MADNESS_WORLD_VECTOR_ARCHIVE_H__INCLUDED
 #define MADNESS_WORLD_VECTOR_ARCHIVE_H__INCLUDED
 

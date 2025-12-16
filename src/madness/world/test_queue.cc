@@ -1,6 +1,8 @@
 #include <madness/world/MADworld.h>
 
-// This program is used to do a simple test of the task queue.
+/* Test Purpose: Stress-tests the World task queue by spawning many tasks and
+   tracking per-thread counters to ensure scheduling and thread-local storage
+   behave correctly under load. */
 
 const int NGEN=100;
 const int NTASK=100000;

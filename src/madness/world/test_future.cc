@@ -25,10 +25,12 @@
   P.O. Box 2008, MS-6367
 
   email: harrisonrj@ornl.gov
-  tel:   865-241-3937
-  fax:   865-572-0680
+ tel:   865-241-3937
+ fax:   865-572-0680
 */
 
+/* Test Purpose: Validates MADNESS Future behavior—creation, setting, probing,
+   and synchronization semantics across ranks. */
 #include <madness/world/MADworld.h>
 #include <string>
 

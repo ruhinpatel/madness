@@ -29,6 +29,9 @@
   fax:   865-572-0680
 */
 
+/* Overview: Concurrent hash map wrapper for MADNESS, adapting tbb::concurrent_hash_map
+   (or alternatives) with world-specific hash helpers for distributed objects. */
+
 #ifndef MADNESS_WORLD_WORLDHASHMAP_H__INCLUDED
 #define MADNESS_WORLD_WORLDHASHMAP_H__INCLUDED
 

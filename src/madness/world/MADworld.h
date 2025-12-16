@@ -29,6 +29,11 @@
   fax:   865-572-0680
 */
 
+/* Overview: Convenience umbrella header that pulls in the core MADNESS world
+   runtime—World, RMI, threading, serialization, and support utilities—for
+   client applications. Include when building distributed MADNESS codes rather
+   than cherry-picking individual runtime headers. */
+
 /**
  \file MADworld.h
  \brief This header should include pretty much everything needed for the

@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Hash utilities for world-aware keys and containers within MADNESS,
+   providing hash functions for distributed IDs and pointers used in hash maps
+   across world components. */
+
 #ifndef MADNESS_WORLD_WORLDHASH_H__INCLUDED
 #define MADNESS_WORLD_WORLDHASH_H__INCLUDED
 

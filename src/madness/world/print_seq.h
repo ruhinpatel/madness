@@ -29,6 +29,9 @@
   fax:   865-572-0680
 */
 
+/* Overview: Sequential printing helper for MADNESS, forcing ordered output from
+   multiple ranks/threads to avoid interleaving when emitting diagnostics. */
+
 #ifndef MADNESS_WORLD_PRINT_SEQ_H__INCLUDED
 #define MADNESS_WORLD_PRINT_SEQ_H__INCLUDED
 

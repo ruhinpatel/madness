@@ -25,9 +25,12 @@
   P.O. Box 2008, MS-6367
 
   email: harrisonrj@ornl.gov
-  tel:   865-241-3937
-  fax:   865-572-0680
+ tel:   865-241-3937
+ fax:   865-572-0680
 */
+
+/* Test Purpose: Stresses threaded hash map operations to ensure concurrent
+   access in MADNESS hash containers is safe and correct. */
 
 #include <madness/world/world.h>
 #include <madness/world/thread.h>

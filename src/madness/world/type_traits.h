@@ -29,6 +29,9 @@
   fax:   865-572-0680
 */
 
+/* Overview: Additional type traits and SFINAE helpers used by MADNESS to
+   detect serializability, callability, and other properties in templates. */
+
 #ifndef MADNESS_WORLD_TYPE_TRAITS_H__INCLUDED
 #define MADNESS_WORLD_TYPE_TRAITS_H__INCLUDED
 

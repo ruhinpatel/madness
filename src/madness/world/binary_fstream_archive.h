@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Binary file stream archive adapters that serialize MADNESS objects
+   to and from std::fstream-backed storage. Provides convenience wrappers to
+   persist buffer archives in a binary, portable format. */
+
 #ifndef MADNESS_WORLD_BINARY_FSTREAM_ARCHIVE_H__INCLUDED
 #define MADNESS_WORLD_BINARY_FSTREAM_ARCHIVE_H__INCLUDED
 
@@ -50,6 +54,7 @@ namespace madness {
         /// @{
 
         /// Wraps an archive around a binary filestream for output.
+        /// Output archive writing serialized data to a binary fstream.
         class BinaryFstreamOutputArchive : public BaseOutputArchive {
             static const std::size_t IOBUFSIZE = 4*1024*1024; ///< Buffer size.
             std::shared_ptr<char> iobuf; ///< Buffer.
@@ -101,6 +106,7 @@ namespace madness {
         };
 
         /// Wraps an archive around a binary filestream for input.
+        /// Input archive reading serialized data from a binary fstream.
         class BinaryFstreamInputArchive : public BaseInputArchive {
             static const std::size_t IOBUFSIZE = 4*1024*1024; ///< Buffer size.
             std::shared_ptr<char> iobuf; ///< Buffer.

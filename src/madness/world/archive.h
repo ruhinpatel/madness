@@ -29,6 +29,11 @@
   fax:   865-572-0680
 */
 
+/* Overview: Core serialization interfaces for MADNESS, defining archive traits,
+   opaque pointer wrapping, and helper utilities used by all concrete archive
+   backends (buffer, MPI, file, parallel). Provides the abstractions that allow
+   MADNESS objects to be serialized consistently across transports. */
+
 #ifndef MADNESS_WORLD_ARCHIVE_H__INCLUDED
 #define MADNESS_WORLD_ARCHIVE_H__INCLUDED
 
