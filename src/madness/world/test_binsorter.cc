@@ -1,3 +1,5 @@
+/* Test Purpose: Ensures BinSorter distributes elements to owning ranks, flushes
+   buckets correctly, and preserves checksums under stress. */
 #include <madness/world/MADworld.h>
 #include <madness/world/binsorter.h>
 

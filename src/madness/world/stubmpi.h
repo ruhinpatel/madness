@@ -1,6 +1,10 @@
 #ifndef MADNESS_STUBMPI_H
 #define MADNESS_STUBMPI_H
 
+/* Overview: Minimal stub MPI interface used when MADNESS is built without a
+   real MPI library, defining placeholder types, constants, and no-op functions
+   to enable serial compilation. */
+
 #include <madness/madness_config.h>
 #include <cstddef>
 #include <cstdlib>

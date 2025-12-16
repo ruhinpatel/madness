@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Distributed container (WorldDC) used by MADNESS to store and access
+   keyed data across ranks, supporting replicated or partitioned modes with
+   consistency management for shared datasets. */
+
 #ifndef MADNESS_WORLD_WORLDDC_H__INCLUDED
 #define MADNESS_WORLD_WORLDDC_H__INCLUDED
 

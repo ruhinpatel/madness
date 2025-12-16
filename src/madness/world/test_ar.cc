@@ -29,6 +29,9 @@
   fax:   865-572-0680
 */
 
+/* Test Purpose: Exercises archive serialization routines, ensuring objects can
+   round-trip through MADNESS archives without corruption. */
+
 #include <iostream>
 using std::cout;
 using std::endl;

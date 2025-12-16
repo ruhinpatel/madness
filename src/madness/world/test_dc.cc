@@ -29,6 +29,9 @@
   fax:   865-572-0680
 */
 
+/* Test Purpose: Verifies distributed container (WorldDC) behavior, including
+   insertion, lookup, replication, and cleanup semantics across ranks. */
+
 //#define MAD_ARCHIVE_DEBUG_ENABLE
 
 #include <algorithm>

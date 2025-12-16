@@ -1,5 +1,9 @@
 //
 // Created by Florian Bischoff on 5/15/21.
+
+/* Overview: Convenience timers for MADNESS code paths, providing a simple RAII
+   timer struct that fences the world, measures elapsed time, and optionally
+   prints results. */
 //
 
 #ifndef MADNESS_TIMING_UTILITIES_H

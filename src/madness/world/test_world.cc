@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Test Purpose: Exercises core World functionality—construction, global
+   operations, task scheduling, and serialization hooks—to ensure the parallel
+   runtime behaves correctly across ranks. */
+
 #include <vector>
 #include <numeric>
 #include <algorithm>

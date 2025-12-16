@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Thread information helpers that expose thread IDs, core IDs, and
+   affinity controls for MADNESS threads, enabling runtime components to label
+   and pin worker threads. */
+
 #ifndef MADNESS_WORLD_THREAD_INFO_H__INCLUDED
 #define MADNESS_WORLD_THREAD_INFO_H__INCLUDED
 

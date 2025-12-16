@@ -30,6 +30,9 @@
 
   $Id$
 */
+
+/* Overview: Profiling utilities for MADNESS World, collecting timing and event
+   statistics for world components and exposing reporting APIs. */
 #ifndef MADNESS_WORLD_WORLDPROFILE_H__INCLUDED
 #define MADNESS_WORLD_WORLDPROFILE_H__INCLUDED
 

@@ -31,6 +31,10 @@
 
 */
 
+/* Overview: POSIX shared-memory helpers to allocate and free aligned regions
+   for MADNESS processes on the same node, supporting world-level shared memory
+   features without manual mmap handling. */
+
 #ifndef MADNESS_WORLD_POSIXMEM_H__INCLUDED
 #define MADNESS_WORLD_POSIXMEM_H__INCLUDED
 

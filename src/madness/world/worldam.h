@@ -29,6 +29,11 @@
   fax:   865-572-0680
  */
 
+/* Overview: World-aware active message layer built atop the RMI transport,
+   adding buffer management, flow control, and World integration for dispatching
+   registered handlers. Used by higher-level components (e.g., global ops) to
+   deliver tasks and notifications between ranks. */
+
 #ifndef MADNESS_WORLD_WORLDAM_H__INCLUDED
 #define MADNESS_WORLD_WORLDAM_H__INCLUDED
 
@@ -267,14 +272,21 @@ namespace madness {
         }
 
     public:
+        /// Construct a World-aware active message interface bound to a World.
+        /// \param world The owning World; used to map ranks and track progress.
         WorldAmInterface(World& world);
 
+        /// Tear down outstanding AM state and free managed buffers.
         virtual ~WorldAmInterface();
 
-        /// Currently a noop
+        /// Synchronize AM bookkeeping (currently a no-op placeholder).
         void fence() {}
 
-        /// Sends a managed non-blocking active message
+        /// Send a managed non-blocking active message.
+        /// \param dest Destination rank in the World's communicator.
+        /// \param op Handler to invoke on the remote side.
+        /// \param arg Serialized payload allocated via AmArg helpers.
+        /// \param attr Ordering attribute (ordered vs unordered).
         void send(ProcessID dest, am_handlerT op, const AmArg* arg,
                   const int attr=RMI::ATTR_ORDERED)
         {

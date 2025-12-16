@@ -29,6 +29,9 @@
   fax:   865-572-0680
 */
 
+/* Overview: Range utilities providing iterator ranges and chunking helpers
+   used by MADNESS task scheduling to split work across elements. */
+
 #ifndef MADNESS_WORLD_RANGE_H__INCLUDED
 #define MADNESS_WORLD_RANGE_H__INCLUDED
 

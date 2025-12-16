@@ -1,6 +1,9 @@
 //
 // Created by Eduard Valeyev on 2/5/24.
 //
+/* Overview: Physical units and conversion constants used in MADNESS, providing
+   consistent definitions for atomic units and SI conversions across the code
+   base. */
 
 #ifndef MADNESS_UNITS_H
 #define MADNESS_UNITS_H

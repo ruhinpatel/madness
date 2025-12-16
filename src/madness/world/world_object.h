@@ -30,10 +30,14 @@
 */
 
 /**
- \file world_object.h
- \brief Defines and implements \c WorldObject.
- \ingroup world_object
+\file world_object.h
+\brief Defines and implements \c WorldObject.
+\ingroup world_object
 */
+
+/* Overview: Base class for MADNESS world-aware objects, providing serialization
+   hooks, world registration, and helpers to expose objects to remote method
+   invocation and task systems. */
 
 #ifndef MADNESS_WORLD_WORLD_OBJECT_H__INCLUDED
 #define MADNESS_WORLD_WORLD_OBJECT_H__INCLUDED

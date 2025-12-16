@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Small vector/matrix utility classes for MADNESS, offering fixed-
+   size numeric vectors with basic arithmetic used throughout world and tensor
+   code. */
+
 #ifndef MADNESS_WORLD_VECTOR_H__INCLUDED
 #define MADNESS_WORLD_VECTOR_H__INCLUDED
 

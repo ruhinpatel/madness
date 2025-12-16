@@ -29,6 +29,9 @@
   fax:   865-572-0680
 */
 
+/* Test Purpose: Exercises profiling utilities to ensure timers and counters
+   record expected values during sample workloads. */
+
 #include <madness/world/MADworld.h>
 #include <cmath>
 #include <cstdio>

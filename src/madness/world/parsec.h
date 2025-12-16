@@ -1,6 +1,9 @@
 #ifndef MADNESS_PARSEC_INCLUED
 #define MADNESS_PARSEC_INCLUED
 
+/* Overview: Parsec runtime integration hooks for MADNESS, wrapping creation and
+   teardown of a Parsec context when compiled with Parsec support. */
+
 #include <madness/madness_config.h>
 
 #ifdef HAVE_PARSEC

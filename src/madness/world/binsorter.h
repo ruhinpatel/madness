@@ -2,6 +2,9 @@
 #ifndef MADNESS_WORLD_BINSORTER_H__INCLUDED
 #define MADNESS_WORLD_BINSORTER_H__INCLUDED
 
+/* Overview: Bin sorting utility that buckets items (with optional load
+   balancing) to distribute work or data across ranks in MADNESS. */
+
 #include <madness/world/MADworld.h>
 #include <madness/world/world_object.h>
 #include <madness/world/madness_exception.h>

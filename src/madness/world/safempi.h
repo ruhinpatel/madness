@@ -30,6 +30,9 @@
 
   $Id$
 */
+/* Overview: Safety wrapper for MPI providing RAII communicators/requests,
+   exception-aware calls, and helper utilities used across the MADNESS runtime
+   to avoid raw MPI boilerplate. */
 #ifndef MADNESS_WORLD_SAFEMPI_H__INCLUDED
 #define MADNESS_WORLD_SAFEMPI_H__INCLUDED
 

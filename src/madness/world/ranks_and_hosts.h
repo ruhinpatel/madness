@@ -2,6 +2,9 @@
 // Created by Florian Bischoff on 18.09.25.
 //
 
+/* Overview: Utility functions to map ranks to hostnames and gather rank lists
+   per host, enabling topology-aware behavior in MADNESS applications. */
+
 #ifndef MADNESS_RANKS_AND_HOSTS_H
 #define MADNESS_RANKS_AND_HOSTS_H
 

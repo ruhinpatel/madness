@@ -35,6 +35,10 @@
 #ifndef MADNESS_WORLD_DEFERRED_CLEANUP_H__INCLUDED
 #define MADNESS_WORLD_DEFERRED_CLEANUP_H__INCLUDED
 
+/* Overview: Deferred cleanup helper that queues cleanup actions to execute
+   later, letting MADNESS components schedule destruction outside critical
+   paths. */
+
 #include <madness/world/worldmutex.h>  // For Mutex
 #include <list>
 #include <memory>

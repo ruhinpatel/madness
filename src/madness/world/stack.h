@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Lightweight fixed-capacity stack implementation used in MADNESS
+   for performance-sensitive contexts where std::stack overhead is undesirable.
+   Provides push/pop/top interfaces over a static buffer. */
+
 #ifndef MADNESS_WORLD_STACK_H__INCLUDED
 #define MADNESS_WORLD_STACK_H__INCLUDED
 

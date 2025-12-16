@@ -1,6 +1,10 @@
 #ifndef MADNESS_FUNCTION_TRAITS
 #define MADNESS_FUNCTION_TRAITS
 
+/* Overview: Compile-time utilities to introspect function and functor
+   signatures (arity, result, argument types) used to adapt callables for
+   tasks, futures, and serialization in MADNESS. */
+
 #include <type_traits>
 
 namespace madness {

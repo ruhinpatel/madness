@@ -25,10 +25,12 @@
   P.O. Box 2008, MS-6367
 
   email: harrisonrj@ornl.gov
-  tel:   865-241-3937
-  fax:   865-572-0680
+ tel:   865-241-3937
+ fax:   865-572-0680
 */
 
+/* Test Purpose: Validates the custom stack implementation, pushing/popping
+   elements and checking capacity/error handling. */
 #include <madness/madness_config.h>
 #ifdef MADNESS_HAS_GOOGLE_TEST
 

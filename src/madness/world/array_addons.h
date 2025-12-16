@@ -32,6 +32,9 @@
 #ifndef MADNESS_WORLD_ARRAY_ADDONS_H__INCLUDED
 #define MADNESS_WORLD_ARRAY_ADDONS_H__INCLUDED
 
+/* Overview: Convenience helpers for std::array used in MADNESS, supplying
+   utility functions and operators to simplify working with fixed-size arrays. */
+
 /**
  \file array_addons.h
  \brief Supplements to the \c std::array class, such as I/O operations,

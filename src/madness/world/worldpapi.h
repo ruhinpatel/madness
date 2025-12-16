@@ -29,6 +29,9 @@
   fax:   865-572-0680
 */
 
+/* Overview: PAPI integration layer for MADNESS, exposing performance counter
+   collection and profiling hooks via the PAPI library when available. */
+
 #ifndef MADNESS_WORLD_WORLDPAPI_H__INCLUDED
 #define MADNESS_WORLD_WORLDPAPI_H__INCLUDED
 

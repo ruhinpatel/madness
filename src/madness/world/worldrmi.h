@@ -29,6 +29,12 @@
   fax:   865-572-0680
 */
 
+/* Overview: Low-level remote method invocation (RMI) layer that runs a server
+   thread to move active messages between ranks. Exposes buffered isend, start/
+   stop lifecycle hooks, and debugging/statistics utilities used by higher
+   layers such as worldam/worldgop. Applications typically rely on worldam
+   rather than using this interface directly. */
+
 #ifndef MADNESS_WORLD_WORLDRMI_H__INCLUDED
 #define MADNESS_WORLD_WORLDRMI_H__INCLUDED
 
@@ -367,8 +373,13 @@ namespace madness {
         /// @param[in] comm the communicator
         static void assert_aslr_off(const SafeMPI::Intracomm& comm = SafeMPI::COMM_WORLD);
 
+        /// Start the RMI server thread on the given communicator.
+        ///
+        /// Safe to call multiple times; no-op if already running.
+        /// \param comm communicator clone to service (defaults to COMM_WORLD clone).
         static void begin(const SafeMPI::Intracomm& comm = SafeMPI::COMM_WORLD);
 
+        /// Stop the RMI server thread and release associated resources.
         static void end() {
             if(task_ptr) {
                 task_ptr->exit();
@@ -377,10 +388,13 @@ namespace madness {
             }
         }
 
+        /// Enable or disable verbose RMI debug logging.
         static void set_debug(bool status) { debugging = status; }
 
+        /// Query whether verbose RMI debug logging is enabled.
         static bool get_debug() { return debugging; }
 
+        /// Retrieve accumulated message statistics (bytes/messages sent/received).
         static const RMIStats& get_stats() { return stats; }
     }; // class RMI
 

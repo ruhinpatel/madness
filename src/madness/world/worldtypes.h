@@ -29,6 +29,11 @@
   fax:   865-572-0680
 */
 
+/* Overview: Basic world-level identifiers for the MADNESS runtime, defining
+   process ranks and message tags shared across world, RMI, and group APIs.
+   These aliases standardize how ranks and wire tags are passed between
+   communication layers. */
+
 /** 
  \file worldtypes.h
  \brief Defines types used by the parallel runtime.

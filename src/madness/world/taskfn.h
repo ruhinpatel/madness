@@ -25,9 +25,13 @@
  P.O. Box 2008, MS-6367
 
  email: harrisonrj@ornl.gov
- tel:   865-241-3937
- fax:   865-572-0680
+  tel:   865-241-3937
+  fax:   865-572-0680
 */
+
+/* Overview: Task function wrappers converting free/member functions and functors
+   into unified TaskFn objects with futures, used for submitting work to
+   MADNESS task queues. */
 
 #ifndef MADNESS_WORLD_TASKFN_H__INCLUDED
 #define MADNESS_WORLD_TASKFN_H__INCLUDED

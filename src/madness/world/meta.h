@@ -5,6 +5,10 @@
  *      Author: evaleev
  */
 
+/* Overview: Template metaprogramming utilities for MADNESS, offering common
+   type traits, detection idioms, and compile-time helpers used across task and
+   serialization code. */
+
 #ifndef SRC_MADNESS_WORLD_META_H_
 #define SRC_MADNESS_WORLD_META_H_
 

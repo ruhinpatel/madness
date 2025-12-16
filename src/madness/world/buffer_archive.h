@@ -29,6 +29,11 @@
   fax:   865-572-0680
 */
 
+/* Overview: In-memory serialization archives for MADNESS, providing input/output
+   buffer archives and helper wrappers to serialize objects into contiguous
+   byte buffers. Used by messaging layers (RMI/AM) and file backends to stage
+   payloads without external dependencies. */
+
 #ifndef MADNESS_WORLD_BUFFER_ARCHIVE_H__INCLUDED
 #define MADNESS_WORLD_BUFFER_ARCHIVE_H__INCLUDED
 
@@ -56,6 +61,7 @@ namespace madness {
         /// \throw madness::MadnessException in case of buffer overflow.
         ///
         /// The default constructor can also be used to count stuff.
+        /// Output archive that writes serialized data into an in-memory buffer.
         class BufferOutputArchive : public BaseOutputArchive {
         private:
             unsigned char * const ptr; ///< The memory buffer.
@@ -131,6 +137,7 @@ MADNESS_PRAGMA_GCC(diagnostic pop)
         /// \note Type checking is disabled for efficiency.
         ///
         /// \throw madness::MadnessException in case of buffer overrun.
+        /// Input archive that reads serialized data from an in-memory buffer.
         class BufferInputArchive : public BaseInputArchive {
         private:
             const unsigned char* const ptr; ///< The memory buffer.

@@ -1,6 +1,9 @@
 #ifndef MADNESS_WORLD_WORLDMEM_H__INCLUDED
 #define MADNESS_WORLD_WORLDMEM_H__INCLUDED
 
+/* Overview: World memory utilities for MADNESS, handling shared-memory segments
+   and per-world allocation strategies for interprocess communication. */
+
 /*
   This file is part of MADNESS.
 

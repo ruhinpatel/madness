@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Lightweight atomic integer wrapper providing platform-neutral
+   atomic increment/decrement and exchange used throughout MADNESS for counters
+   and task bookkeeping. */
+
 #ifndef MADNESS_WORLD_ATOMICINT_H__INCLUDED
 #define MADNESS_WORLD_ATOMICINT_H__INCLUDED
 

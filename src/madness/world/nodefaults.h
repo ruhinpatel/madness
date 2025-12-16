@@ -36,6 +36,9 @@
 #ifndef MADNESS_WORLD_NODEFAULTS_H__INCLUDED
 #define MADNESS_WORLD_NODEFAULTS_H__INCLUDED
 
+/* Overview: Marker base class disabling default construction and assignment,
+   used to prevent accidental copying of MADNESS classes that derive from it. */
+
 /// \file nodefaults.h
 /// \brief Implements NO_DEFAULTS
 

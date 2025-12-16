@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Remote reference implementation for MADNESS, enabling references to
+   world-local objects to be shared across ranks with reference counting and
+   cleanup via the active message layer. */
+
 
 #ifndef MADNESS_WORLD_WORLDREF_H__INCLUDED
 #define MADNESS_WORLD_WORLDREF_H__INCLUDED

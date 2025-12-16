@@ -29,6 +29,11 @@
   fax:   865-572-0680
 */
 
+/* Overview: Entry points for bringing up the MADNESS world runtime - initializing
+   MPI, threads, and rank-local IO redirection - and for shutting it down.
+   Applications call these once at startup to obtain the default World and set
+   runtime threading before submitting work. */
+
 /**
  \file worldinit.h
  \brief Declares the functions that initialize the parallel runtime.

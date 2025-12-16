@@ -29,14 +29,17 @@
   fax:   865-572-0680
 */
 
+/* Overview: Core parallel runtime interface for MADNESS. Declares the World
+   class plus helper free functions that wrap MPI communicators, active
+   messaging, task queues, and global operations. Client code uses World to
+   manage ranks, spawn tasks, and exchange data via RMI while coordinating
+   profiling and error handling. */
+
 /**
  \file world.h
  \brief Declares the \c World class for the parallel runtime environment.
  \ingroup world
 
- \todo More detailed description of this file.
-
- \todo Are some of the forward declarations in this file necessary? A quick inspection suggests most of the functions before the World class don't need to be declared first...
 */
 
 #ifndef MADNESS_WORLD_WORLD_H__INCLUDED
@@ -85,33 +88,29 @@ namespace madness {
     class WorldAmInterface;
     class WorldGopInterface;
 
-    /// Print miscellaneous stats on a World.
-
-    /// This requires collective operations within the World.
-    /// \param[in] world The World to analyze.
+    /// Print aggregate statistics (memory, tasks, messages) for the given World.
+    ///
+    /// Collective across the World; useful for end-of-run diagnostics.
+    /// \param[in] world The World to analyze and report on.
     void print_stats(World& world);
 
-    /// \todo Brief description needed.
-
-    /// \todo Detailed description needed.
-    /// \param path Description.
-    /// \param display Description.
+    /// Launch an xterm attached to the current process for interactive debugging.
+    ///
+    /// \param path Shell to run inside xterm (e.g., "/bin/bash").
+    /// \param display X11 display string (e.g., ":0") for the spawned terminal.
     extern void xterm_debug(const char* path, const char* display);
 
-    /// \todo Brief description needed.
-
-    /// \todo Detailed description needed. I imagine this prints/logs the supplied
-    /// error message and subsequently aborts the program.
+    /// Abort the program with an error message on all ranks.
+    ///
+    /// Prints \p msg then terminates execution.
     /// \param[in] msg Message associated with the error.
     void error(const char *msg);
 
     /// Prints an error message, along with some data, and aborts the program.
-
-    /// \todo Does this function need to be static? (Esp. since it's in a header file...)
     ///
     /// \tparam T The type of data.
     /// \param[in] msg The error message.
-    /// \param[in] data The data to be printed.
+    /// \param[in] data Additional value to emit before aborting.
     template <typename T>
     static void error(const char *msg, const T& data);
 
@@ -505,20 +504,16 @@ namespace madness {
     private:
 
         // Cannot use bind_nullary here since SafeMPI::Request::Test is non-const
-        /// \todo Brief description needed.
+        /// Helper to adapt an MPI request to the ThreadPool await probe.
         struct MpiRequestTester {
-            mutable SafeMPI::Request* r; ///< \todo Brief description needed.
+            mutable SafeMPI::Request* r; ///< Request being tested for completion.
 
-            /// \todo Brief description needed.
-
-            /// \todo Descriptions needed.
-            /// \param r Description needed.
+            /// Construct with a request reference.
+            /// \param r request to monitor.
             MpiRequestTester(SafeMPI::Request& r) : r(&r) {}
 
-            /// \todo Brief description needed.
-
-            /// \todo Descriptions needed.
-            /// \return Description needed.
+            /// Test whether the wrapped request has completed.
+            /// \return true if complete, false otherwise.
             bool operator()() const {
                 return r->Test();
             }
@@ -526,23 +521,23 @@ namespace madness {
 
     public:
 
-        /// Wait for a MPI request to complete.
-
-        /// \todo Descriptions needed.
+        /// Wait for an MPI request to complete while optionally executing tasks.
+        ///
+        /// Uses the thread pool's await loop to progress other work instead of
+        /// busy-waiting on the request.
         /// \param[in,out] request The MPI request on which to wait.
-        /// \param dowork Work while waiting - default is true
+        /// \param dowork Work while waiting - default is true.
         static void inline await(SafeMPI::Request& request, bool dowork = true) {
 	  ThreadPool::await(MpiRequestTester(request), dowork, true); // Last arg is sleep=true --- don't hard spin on MPI requests
         }
 
-        /// Gracefully wait for a condition to become true.
-
+        /// Gracefully wait for a condition to become true while servicing tasks.
+        ///
         /// In the mean time, execute any tasks in the queue.
-        /// \todo Descriptions needed.
         /// \tparam Probe An object that, when called, returns the status.
         /// \param[in] probe The conditional's test.
-        /// \param dowork Work while waiting - default is true
-	/// \param sleep Sleep instead of spin while waiting - default is false
+        /// \param dowork Work while waiting - default is true.
+	/// \param sleep Sleep instead of spin while waiting - default is false.
         template <typename Probe>
 	  static void inline await(const Probe& probe, bool dowork = true, bool sleep=false) {
             ThreadPool::await(probe, dowork);
@@ -550,8 +545,7 @@ namespace madness {
 
         /// Crude seed function for random number generation.
 
-        /// \param[in] seed The seed.
-        /// \todo Since we're switching to C++11, would it be worth using the new C++11 random number generation capabilities?
+        /// \param[in] seed The seed (defaults to world rank if zero).
         void srand(unsigned long seed = 0ul) {
             if (seed == 0) seed = rank();
 #ifdef HAVE_RANDOM
@@ -563,11 +557,10 @@ namespace madness {
         }
 
 
-        /// Returns a CRUDE, LOW-QUALITY, random number (integer) uniformly distributed in [0,2**24).
-
+        /// Returns a crude, per-process pseudo-random integer in [0,2**24).
+        ///
         /// Each process has a distinct seed for the generator.
         /// \return The random number.
-        /// \todo Since we're switching to C++11, would it be worth using the new C++11 random number generation capabilities?
         int rand() {
 #ifdef HAVE_RANDOM
             return int(random() & 0xfffffful);
@@ -578,7 +571,7 @@ namespace madness {
         }
 
 
-        /// Returns a CRUDE, LOW-QUALITY, random number (real) uniformly distributed in [0,1).
+        /// Returns a crude, per-process pseudo-random real in [0,1).
 
         /// Each process has a distinct seed for the generator.
         /// \return The random number.

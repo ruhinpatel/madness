@@ -29,6 +29,9 @@
   fax:   865-572-0680
 */
 
+/* Overview: Printing utilities for MADNESS, providing formatted output helpers
+   and rank-aware printing functions used across the runtime for diagnostics. */
+
 #ifndef MADNESS_WORLD_PRINT_H__INCLUDED
 #define MADNESS_WORLD_PRINT_H__INCLUDED
 

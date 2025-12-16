@@ -29,6 +29,10 @@
   fax:   865-572-0680
 */
 
+/* Overview: Threading utilities for MADNESS, wrapping OS threads, thread-local
+   binder, mutex types, and the cooperative ThreadPool used by task queues and
+   waits. Provides the core primitives for asynchronous execution. */
+
 #ifndef MADNESS_WORLD_THREAD_H__INCLUDED
 #define MADNESS_WORLD_THREAD_H__INCLUDED
 

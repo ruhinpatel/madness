@@ -35,6 +35,10 @@
  \ingroup world
 */
 
+/* Overview: Unique ID generation utilities for MADNESS, producing globally
+   unique identifiers across worlds for tracking distributed objects and
+   services. */
+
 #ifndef MADNESS_WORLD_UNIQUEID_H__INCLUDED
 #define MADNESS_WORLD_UNIQUEID_H__INCLUDED
 
