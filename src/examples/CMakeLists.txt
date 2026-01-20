@@ -1,6 +1,7 @@
 # src/examples
 
 
+add_subdirectory(hdf5_examples)
 add_subdirectory(writecoeffs)
 
 set(EXAMPLE_SOURCES
