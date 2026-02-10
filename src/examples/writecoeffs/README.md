@@ -73,6 +73,26 @@ h5ls -r fun.h5
 h5dump -d /norm2 fun.h5
 ```
 
+## Running tests
+
+If `BUILD_TESTING=ON`, this directory now registers:
+
+- serial test: `writecoeff_hdf5_serial`
+- MPI test: `writecoeff_hdf5_mpi2`
+- MPI + threads test: `writecoeff_hdf5_mpi2_threads2`
+
+Run only these tests from the build directory:
+
+```bash
+ctest -R writecoeff_hdf5 -V
+```
+
+Run only MPI-flavored checks:
+
+```bash
+ctest -R writecoeff_hdf5_mpi -V
+```
+
 ## Quick HDF5 learning path in this directory
 
 1. Start from `writecoeff.cc` to understand the MADNESS function setup:
