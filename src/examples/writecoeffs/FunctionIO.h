@@ -1,4 +1,3 @@
-#include "ccpairfunction.h"
 #include "funcdefaults.h"
 #include <iostream>
 #include <madness/mra/mra.h>
