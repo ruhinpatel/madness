@@ -116,6 +116,7 @@ option(ENABLE_PAPI "Enables use of PAPI" OFF)
 option(ENABLE_LIBXC "Enables use of the libxc library of density functionals" ON)
 option(ENABLE_PCM "Enables use of the polarizable continuum model library" ON)
 option(ENABLE_INTEGRATORXX "Enables use of the IntegratorXX for building DFT quadrature grids" ON)
+option(ENABLE_HDF5 "Enable HDF5-backed I/O examples and support code" OFF)
 
 set(CMAKE_REQUIRED_LIBRARIES ${LAPACK_LIBRARIES})
 check_cxx_source_compiles(
@@ -180,6 +181,7 @@ else (ENABLE_ELEMENTAL)
   set(MADNESS_HAS_ELEMENTAL 0)
 endif (ENABLE_ELEMENTAL)
 add_feature_info(Elemental ENABLE_ELEMENTAL "compiles parallel linear-algebra library Elemental as part of MADNESS")
+add_feature_info(HDF5 ENABLE_HDF5 "builds HDF5-enabled examples and support code")
 
 option(ENABLE_BOOST "Enable C++ Boost Libraries" OFF)
 
@@ -669,6 +671,7 @@ include(external/gperftools.cmake)
 include(external/tbb.cmake)
 include(external/parsec.cmake)
 include(external/boost.cmake)
+include(external/hdf5.cmake)
 if (NOT MADNESS_BUILD_MADWORLD_ONLY OR MADNESS_BUILD_LIBRARIES_ONLY)
   include(external/lapack.cmake)
   include(external/libxc.cmake)
@@ -797,4 +800,3 @@ endif()
 
 feature_summary(WHAT ALL
                 DESCRIPTION "=== MADNESS Package/Feature Info ===")
-

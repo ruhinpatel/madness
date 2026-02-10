@@ -1,7 +1,10 @@
 #include <FunctionIO.h>
+#include <hdf5.h>
+#include <fstream>
 #include <iostream>
 #include <madness/mra/mra.h>
 #include <memory>
+#include <string>
 
 using namespace madness;
 
@@ -25,6 +28,44 @@ static dataT f(const coordT &r) {
 
 using fio = FunctionIO<double, D>;
 
+namespace {
+
+bool write_norm_to_hdf5(const std::string &filename, double norm) {
+  const hsize_t dims[1] = {1};
+
+  hid_t file =
+      H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+  if (file < 0) {
+    return false;
+  }
+
+  hid_t dataspace = H5Screate_simple(1, dims, nullptr);
+  if (dataspace < 0) {
+    H5Fclose(file);
+    return false;
+  }
+
+  hid_t dataset =
+      H5Dcreate2(file, "norm2", H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT,
+                 H5P_DEFAULT, H5P_DEFAULT);
+  if (dataset < 0) {
+    H5Sclose(dataspace);
+    H5Fclose(file);
+    return false;
+  }
+
+  const herr_t write_status =
+      H5Dwrite(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &norm);
+  const herr_t close_dataset_status = H5Dclose(dataset);
+  const herr_t close_dataspace_status = H5Sclose(dataspace);
+  const herr_t close_file_status = H5Fclose(file);
+
+  return write_status >= 0 && close_dataset_status >= 0 &&
+         close_dataspace_status >= 0 && close_file_status >= 0;
+}
+
+} // namespace
+
 void test(World &world) {
   functionT fun = factoryT(world).f(f);
   fun.truncate();
@@ -36,8 +77,12 @@ void test(World &world) {
 
   {
     double norm = fun.norm2();
-    if (world.rank() == 0)
+    if (world.rank() == 0) {
       std::cout << "norm = " << norm << std::endl;
+      if (!write_norm_to_hdf5("fun.h5", norm)) {
+        std::cerr << "failed to write HDF5 output file fun.h5" << std::endl;
+      }
+    }
     std::ofstream out("fun.dat", std::ios::out);
     fio::write_function(fun, out);
     out.close();
