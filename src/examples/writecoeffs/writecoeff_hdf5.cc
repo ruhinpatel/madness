@@ -83,6 +83,8 @@ void test(World &world) {
         std::cerr << "failed to write HDF5 output file fun.h5" << std::endl;
       }
     }
+    world.gop.fence();
+
     std::ofstream out("fun.dat", std::ios::out);
     fio::write_function(fun, out);
     out.close();
