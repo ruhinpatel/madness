@@ -68,3 +68,4 @@ compile_commands
 diff.txt
 newdiff.txt
 .vscode/settings.json
+.cache
