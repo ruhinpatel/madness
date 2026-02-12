@@ -10,9 +10,10 @@ formats (`.dat`, JSON, and HDF5).
 - `writecoeff_json.cc`
   - JSON-oriented coefficient workflow.
 - `writecoeff_hdf5.cc`
-  - HDF5-enabled example. Writes a simple dataset (`norm2`) to `fun.h5`.
+  - HDF5-enabled example using `FunctionIO::write_function_hdf5(...)` and
+    `FunctionIO::read_function_hdf5(...)`.
 - `FunctionIO.h`
-  - baseline helper utilities for serializing/reconstructing function data.
+  - text and HDF5 helper utilities for serializing/reconstructing function data.
 - `FunctionIOHDF5.h`
   - in-progress richer data model for HDF5-style workflows.
 
@@ -64,13 +65,16 @@ Run:
 Expected outputs from `writecoeff_hdf5`:
 
 - `fun.dat` (text coefficient data)
-- `fun.h5` (HDF5 file with dataset `norm2`)
+- `fun.h5` (HDF5 file with MADNESS function layout)
 
 Optional inspection tools:
 
 ```bash
 h5ls -r fun.h5
-h5dump -d /norm2 fun.h5
+h5dump -d /meta fun.h5
+h5dump -d /cell fun.h5
+h5dump -d /leaf_keys fun.h5
+h5dump -d /values fun.h5
 ```
 
 ## Running tests
@@ -99,8 +103,8 @@ ctest -R writecoeff_hdf5_mpi -V
    - construct a function with `FunctionFactory`
    - call `truncate()` and `norm2()`
 2. Open `writecoeff_hdf5.cc`:
-   - see `write_norm_to_hdf5(...)`
-   - note direct HDF5 C API calls: `H5Fcreate`, `H5Dcreate2`, `H5Dwrite`
+   - see `fio::write_function_hdf5(...)` and `fio::read_function_hdf5(...)`
+   - this exercises FunctionIO-based roundtrip through HDF5
 3. Compare against `FunctionIO.h`:
    - identify where tree/leaf values are available for export.
 4. Review `FunctionIOHDF5.h`:
@@ -120,12 +124,10 @@ correctness while iterating.
 
 A practical layout:
 
-- `/meta/ndim` (scalar)
-- `/meta/k` (scalar)
-- `/meta/cell` (shape `[ndim, 2]`)
-- `/meta/num_leaf_nodes` (scalar)
-- `/leaf/nl` (shape `[num_leaf_nodes, ndim + 1]`, level + translations)
-- `/leaf/values` (shape `[num_leaf_nodes, npts_per_box]`)
+- `/meta` (shape `[4]`: `ndim`, `k`, `npts_per_box`, `num_leaf_nodes`)
+- `/cell` (shape `[ndim, 2]`)
+- `/leaf_keys` (shape `[num_leaf_nodes, ndim + 1]`, level + translations)
+- `/values` (shape `[num_leaf_nodes, npts_per_box]`)
 
 This maps closely to fields already present in `FunctionIOData`.
 

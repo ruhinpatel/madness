@@ -1,5 +1,4 @@
 #include <FunctionIO.h>
-#include <hdf5.h>
 
 #include <algorithm>
 #include <cmath>
@@ -9,7 +8,6 @@
 #include <memory>
 #include <sstream>
 #include <string>
-#include <limits>
 
 using namespace madness;
 
@@ -69,60 +67,6 @@ bool parse_options(int argc, char **argv, RunOptions &options) {
   return true;
 }
 
-bool write_norm_to_hdf5(const std::string &filename, double norm) {
-  const hsize_t dims[1] = {1};
-
-  hid_t file =
-      H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-  if (file < 0) {
-    return false;
-  }
-
-  hid_t dataspace = H5Screate_simple(1, dims, nullptr);
-  if (dataspace < 0) {
-    H5Fclose(file);
-    return false;
-  }
-
-  hid_t dataset =
-      H5Dcreate2(file, "norm2", H5T_NATIVE_DOUBLE, dataspace, H5P_DEFAULT,
-                 H5P_DEFAULT, H5P_DEFAULT);
-  if (dataset < 0) {
-    H5Sclose(dataspace);
-    H5Fclose(file);
-    return false;
-  }
-
-  const herr_t write_status =
-      H5Dwrite(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &norm);
-  const herr_t close_dataset_status = H5Dclose(dataset);
-  const herr_t close_dataspace_status = H5Sclose(dataspace);
-  const herr_t close_file_status = H5Fclose(file);
-
-  return write_status >= 0 && close_dataset_status >= 0 &&
-         close_dataspace_status >= 0 && close_file_status >= 0;
-}
-
-bool read_norm_from_hdf5(const std::string &filename, double &norm) {
-  hid_t file = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
-  if (file < 0) {
-    return false;
-  }
-
-  hid_t dataset = H5Dopen2(file, "norm2", H5P_DEFAULT);
-  if (dataset < 0) {
-    H5Fclose(file);
-    return false;
-  }
-
-  const herr_t read_status =
-      H5Dread(dataset, H5T_NATIVE_DOUBLE, H5S_ALL, H5S_ALL, H5P_DEFAULT, &norm);
-  const herr_t close_dataset_status = H5Dclose(dataset);
-  const herr_t close_file_status = H5Fclose(file);
-
-  return read_status >= 0 && close_dataset_status >= 0 && close_file_status >= 0;
-}
-
 } // namespace
 
 bool test(World &world, const RunOptions &options) {
@@ -138,18 +82,10 @@ bool test(World &world, const RunOptions &options) {
   const double norm = fun.norm2();
 
   {
-    if (world.rank() == 0) {
+    if (world.rank() == 0)
       std::cout << "norm = " << norm << std::endl;
-      if (!write_norm_to_hdf5(options.h5_filename, norm)) {
-        std::cerr << "failed to write HDF5 output file " << options.h5_filename
-                  << std::endl;
-        fail = 1;
-      }
-    }
-    world.gop.sum(fail);
-    if (fail != 0) {
-      return false;
-    }
+
+    fio::write_function_hdf5(fun, options.h5_filename);
 
     std::ofstream out;
     std::ostringstream sink;
@@ -192,34 +128,33 @@ bool test(World &world, const RunOptions &options) {
     functionT fun2 = fio::read_function(world, in);
     in.close();
 
-    const double readback_norm = fun2.norm2();
-    const double roundtrip_error = (fun - fun2).norm2();
+    functionT fun_hdf5 = fio::read_function_hdf5(world, options.h5_filename);
+
+    const double text_readback_norm = fun2.norm2();
+    const double hdf5_readback_norm = fun_hdf5.norm2();
+    const double text_roundtrip_error = (fun - fun2).norm2();
+    const double hdf5_roundtrip_error = (fun - fun_hdf5).norm2();
 
     if (world.rank() == 0) {
-      std::cout << "norm(readback) = " << readback_norm << std::endl;
-      std::cout << "roundtrip error = " << roundtrip_error << std::endl;
-      if (!std::isfinite(roundtrip_error) ||
-          roundtrip_error > options.max_roundtrip_error) {
-        std::cerr << "roundtrip error exceeds tolerance ("
+      std::cout << "norm(text readback) = " << text_readback_norm << std::endl;
+      std::cout << "norm(hdf5 readback) = " << hdf5_readback_norm << std::endl;
+      std::cout << "text roundtrip error = " << text_roundtrip_error
+                << std::endl;
+      std::cout << "hdf5 roundtrip error = " << hdf5_roundtrip_error
+                << std::endl;
+
+      if (!std::isfinite(text_roundtrip_error) ||
+          text_roundtrip_error > options.max_roundtrip_error) {
+        std::cerr << "text roundtrip error exceeds tolerance ("
                   << options.max_roundtrip_error << ")" << std::endl;
         fail = 1;
       }
 
-      double h5_norm = 0.0;
-      if (!read_norm_from_hdf5(options.h5_filename, h5_norm)) {
-        std::cerr << "failed to read back HDF5 file " << options.h5_filename
-                  << std::endl;
+      if (!std::isfinite(hdf5_roundtrip_error) ||
+          hdf5_roundtrip_error > options.max_roundtrip_error) {
+        std::cerr << "hdf5 roundtrip error exceeds tolerance ("
+                  << options.max_roundtrip_error << ")" << std::endl;
         fail = 1;
-      } else {
-        const double h5_diff = std::abs(h5_norm - norm);
-        const double h5_tol = 32.0 * std::numeric_limits<double>::epsilon() *
-                              std::max(1.0, std::abs(norm));
-        std::cout << "hdf5 norm difference = " << h5_diff << std::endl;
-        if (h5_diff > h5_tol) {
-          std::cerr << "HDF5 readback mismatch exceeds tolerance (" << h5_tol
-                    << ")" << std::endl;
-          fail = 1;
-        }
       }
     }
     world.gop.sum(fail);

@@ -1,8 +1,30 @@
 #include "funcdefaults.h"
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <madness/mra/mra.h>
+#include <string>
+#include <vector>
+
+#if defined(MADNESS_HAS_HDF5) && MADNESS_HAS_HDF5 && defined(__has_include)
+#if __has_include(<hdf5.h>)
+#include <hdf5.h>
+#define MADNESS_WRITECOEFFS_HAS_HDF5_IO 1
+#else
+#define MADNESS_WRITECOEFFS_HAS_HDF5_IO 0
+#endif
+#elif defined(MADNESS_HAS_HDF5) && MADNESS_HAS_HDF5
+#include <hdf5.h>
+#define MADNESS_WRITECOEFFS_HAS_HDF5_IO 1
+#else
+#define MADNESS_WRITECOEFFS_HAS_HDF5_IO 0
+#endif
 
 using namespace madness;
+
+template <typename T, std::size_t NDIM> struct FunctionIOData;
 
 constexpr int simple_pow(int a, int b) {
   if (b == 0) {
@@ -22,6 +44,18 @@ private:
   long k = FunctionDefaults<NDIM>::get_k();
   long ndims = NDIM;
   long npts_per_box = simple_pow(k, ndims);
+
+#if MADNESS_WRITECOEFFS_HAS_HDF5_IO
+  template <typename ValueT>
+  static bool hdf5_write_dataset(hid_t file_id, const char *name, hid_t type_id,
+                                 const std::vector<hsize_t> &dims,
+                                 const ValueT *data);
+
+  template <typename ValueT>
+  static bool hdf5_read_dataset(hid_t file_id, const char *name, hid_t type_id,
+                                const std::vector<hsize_t> &expected_dims,
+                                ValueT *data);
+#endif
 
 public:
   static size_t count_leaf_nodes(const Function<T, NDIM> &f) {
@@ -98,6 +132,12 @@ public:
     out << std::setprecision(precision);
     out.setf(flags);
   }
+
+  static void write_function_hdf5(const Function<T, NDIM> &f,
+                                  const std::string &filename);
+
+  static Function<T, NDIM> read_function_hdf5(World &world,
+                                              const std::string &filename);
 
   static void read_function_coeffs(Function<T, NDIM> &f, std::istream &in,
                                    int num_leaf_nodes) {
@@ -290,3 +330,290 @@ void from_json(const json &j, FunctionIOData<T, NDIM> &p) {
   j.at("values").get_to(p.values);
   j.at("ndim").get_to(p.ndim);
 }
+
+#if MADNESS_WRITECOEFFS_HAS_HDF5_IO
+template <typename T, std::size_t NDIM>
+template <typename ValueT>
+bool FunctionIO<T, NDIM>::hdf5_write_dataset(
+    hid_t file_id, const char *name, hid_t type_id,
+    const std::vector<hsize_t> &dims, const ValueT *data) {
+  hid_t dataspace_id =
+      H5Screate_simple(static_cast<int>(dims.size()), dims.data(), nullptr);
+  if (dataspace_id < 0) {
+    return false;
+  }
+
+  hid_t dataset_id = H5Dcreate2(file_id, name, type_id, dataspace_id,
+                                H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+  if (dataset_id < 0) {
+    H5Sclose(dataspace_id);
+    return false;
+  }
+
+  const herr_t write_status =
+      H5Dwrite(dataset_id, type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+               static_cast<const void *>(data));
+  const herr_t close_dataset_status = H5Dclose(dataset_id);
+  const herr_t close_dataspace_status = H5Sclose(dataspace_id);
+
+  return write_status >= 0 && close_dataset_status >= 0 &&
+         close_dataspace_status >= 0;
+}
+
+template <typename T, std::size_t NDIM>
+template <typename ValueT>
+bool FunctionIO<T, NDIM>::hdf5_read_dataset(
+    hid_t file_id, const char *name, hid_t type_id,
+    const std::vector<hsize_t> &expected_dims, ValueT *data) {
+  hid_t dataset_id = H5Dopen2(file_id, name, H5P_DEFAULT);
+  if (dataset_id < 0) {
+    return false;
+  }
+
+  hid_t dataspace_id = H5Dget_space(dataset_id);
+  if (dataspace_id < 0) {
+    H5Dclose(dataset_id);
+    return false;
+  }
+
+  int rank = H5Sget_simple_extent_ndims(dataspace_id);
+  if (rank < 0 || static_cast<std::size_t>(rank) != expected_dims.size()) {
+    H5Sclose(dataspace_id);
+    H5Dclose(dataset_id);
+    return false;
+  }
+
+  std::vector<hsize_t> actual_dims(expected_dims.size(), 0);
+  if (rank > 0) {
+    const int dims_status =
+        H5Sget_simple_extent_dims(dataspace_id, actual_dims.data(), nullptr);
+    if (dims_status < 0) {
+      H5Sclose(dataspace_id);
+      H5Dclose(dataset_id);
+      return false;
+    }
+    for (std::size_t i = 0; i < expected_dims.size(); ++i) {
+      if (actual_dims[i] != expected_dims[i]) {
+        H5Sclose(dataspace_id);
+        H5Dclose(dataset_id);
+        return false;
+      }
+    }
+  }
+
+  const herr_t read_status =
+      H5Dread(dataset_id, type_id, H5S_ALL, H5S_ALL, H5P_DEFAULT,
+              static_cast<void *>(data));
+  const herr_t close_dataspace_status = H5Sclose(dataspace_id);
+  const herr_t close_dataset_status = H5Dclose(dataset_id);
+
+  return read_status >= 0 && close_dataset_status >= 0 &&
+         close_dataspace_status >= 0;
+}
+
+template <typename T, std::size_t NDIM>
+void FunctionIO<T, NDIM>::write_function_hdf5(const Function<T, NDIM> &f,
+                                              const std::string &filename) {
+  FunctionIOData<T, NDIM> data(f);
+  auto &world = f.get_impl()->world;
+
+  int fail = 0;
+  if (world.rank() == 0) {
+    if (data.num_leaf_nodes < 0 || data.npts_per_box <= 0 || data.k <= 0) {
+      fail = 1;
+    }
+
+    const std::size_t leaf_count = static_cast<std::size_t>(data.num_leaf_nodes);
+    const std::size_t npts_per_box =
+        static_cast<std::size_t>(data.npts_per_box);
+    if (data.nl.size() != leaf_count || data.values.size() != leaf_count) {
+      fail = 1;
+    }
+
+    hid_t file_id = -1;
+    if (fail == 0) {
+      file_id =
+          H5Fcreate(filename.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
+      if (file_id < 0) {
+        fail = 1;
+      }
+    }
+
+    if (fail == 0) {
+      const std::array<std::int64_t, 4> metadata = {
+          static_cast<std::int64_t>(NDIM), static_cast<std::int64_t>(data.k),
+          static_cast<std::int64_t>(npts_per_box),
+          static_cast<std::int64_t>(leaf_count)};
+      if (!hdf5_write_dataset(file_id, "meta", H5T_NATIVE_INT64,
+                              {static_cast<hsize_t>(metadata.size())},
+                              metadata.data())) {
+        fail = 1;
+      }
+    }
+
+    if (fail == 0) {
+      std::array<double, NDIM * 2> cell_data{};
+      for (std::size_t d = 0; d < NDIM; ++d) {
+        cell_data[2 * d] = data.cell[d].first;
+        cell_data[2 * d + 1] = data.cell[d].second;
+      }
+      if (!hdf5_write_dataset(
+              file_id, "cell", H5T_NATIVE_DOUBLE,
+              {static_cast<hsize_t>(NDIM), static_cast<hsize_t>(2)},
+              cell_data.data())) {
+        fail = 1;
+      }
+    }
+
+    if (fail == 0 && leaf_count > 0) {
+      std::vector<std::int64_t> key_data(leaf_count * (NDIM + 1), 0);
+      std::vector<double> value_data(leaf_count * npts_per_box, 0.0);
+
+      for (std::size_t i = 0; i < leaf_count; ++i) {
+        if (data.values[i].size() != npts_per_box) {
+          fail = 1;
+          break;
+        }
+        for (std::size_t j = 0; j < NDIM + 1; ++j) {
+          key_data[i * (NDIM + 1) + j] =
+              static_cast<std::int64_t>(data.nl[i][j]);
+        }
+        std::copy(data.values[i].begin(), data.values[i].end(),
+                  value_data.begin() + static_cast<std::ptrdiff_t>(i * npts_per_box));
+      }
+
+      if (fail == 0 &&
+          !hdf5_write_dataset(
+              file_id, "leaf_keys", H5T_NATIVE_INT64,
+              {static_cast<hsize_t>(leaf_count), static_cast<hsize_t>(NDIM + 1)},
+              key_data.data())) {
+        fail = 1;
+      }
+
+      if (fail == 0 &&
+          !hdf5_write_dataset(file_id, "values", H5T_NATIVE_DOUBLE,
+                              {static_cast<hsize_t>(leaf_count),
+                               static_cast<hsize_t>(npts_per_box)},
+                              value_data.data())) {
+        fail = 1;
+      }
+    }
+
+    if (file_id >= 0 && H5Fclose(file_id) < 0) {
+      fail = 1;
+    }
+  }
+
+  world.gop.sum(fail);
+  MADNESS_CHECK(fail == 0);
+  world.gop.fence();
+}
+
+template <typename T, std::size_t NDIM>
+Function<T, NDIM> FunctionIO<T, NDIM>::read_function_hdf5(
+    World &world, const std::string &filename) {
+  FunctionIOData<T, NDIM> data;
+  int fail = 0;
+
+  hid_t file_id = H5Fopen(filename.c_str(), H5F_ACC_RDONLY, H5P_DEFAULT);
+  if (file_id < 0) {
+    fail = 1;
+  }
+
+  std::array<std::int64_t, 4> metadata{};
+  if (fail == 0 &&
+      !hdf5_read_dataset(file_id, "meta", H5T_NATIVE_INT64,
+                         {static_cast<hsize_t>(metadata.size())},
+                         metadata.data())) {
+    fail = 1;
+  }
+
+  std::size_t leaf_count = 0;
+  std::size_t npts_per_box = 0;
+  if (fail == 0) {
+    if (metadata[0] != static_cast<std::int64_t>(NDIM) || metadata[1] <= 0 ||
+        metadata[2] <= 0 || metadata[3] < 0) {
+      fail = 1;
+    } else {
+      leaf_count = static_cast<std::size_t>(metadata[3]);
+      npts_per_box = static_cast<std::size_t>(metadata[2]);
+    }
+  }
+
+  std::array<double, NDIM * 2> cell_data{};
+  if (fail == 0 &&
+      !hdf5_read_dataset(file_id, "cell", H5T_NATIVE_DOUBLE,
+                         {static_cast<hsize_t>(NDIM), static_cast<hsize_t>(2)},
+                         cell_data.data())) {
+    fail = 1;
+  }
+
+  std::vector<std::int64_t> key_data;
+  std::vector<double> value_data;
+  if (fail == 0 && leaf_count > 0) {
+    key_data.resize(leaf_count * (NDIM + 1));
+    value_data.resize(leaf_count * npts_per_box);
+
+    if (!hdf5_read_dataset(
+            file_id, "leaf_keys", H5T_NATIVE_INT64,
+            {static_cast<hsize_t>(leaf_count), static_cast<hsize_t>(NDIM + 1)},
+            key_data.data())) {
+      fail = 1;
+    }
+
+    if (fail == 0 &&
+        !hdf5_read_dataset(file_id, "values", H5T_NATIVE_DOUBLE,
+                           {static_cast<hsize_t>(leaf_count),
+                            static_cast<hsize_t>(npts_per_box)},
+                           value_data.data())) {
+      fail = 1;
+    }
+  }
+
+  if (file_id >= 0 && H5Fclose(file_id) < 0) {
+    fail = 1;
+  }
+
+  world.gop.sum(fail);
+  MADNESS_CHECK(fail == 0);
+
+  data.ndim = NDIM;
+  data.k = static_cast<long>(metadata[1]);
+  data.npts_per_box = static_cast<long>(npts_per_box);
+  data.num_leaf_nodes = static_cast<long>(leaf_count);
+  data.nl.resize(leaf_count);
+  data.values.resize(leaf_count);
+
+  for (std::size_t d = 0; d < NDIM; ++d) {
+    data.cell[d].first = cell_data[2 * d];
+    data.cell[d].second = cell_data[2 * d + 1];
+  }
+  for (std::size_t i = 0; i < leaf_count; ++i) {
+    for (std::size_t j = 0; j < NDIM + 1; ++j) {
+      data.nl[i][j] = static_cast<long>(key_data[i * (NDIM + 1) + j]);
+    }
+    data.values[i].resize(npts_per_box);
+    std::copy(
+        value_data.begin() + static_cast<std::ptrdiff_t>(i * npts_per_box),
+        value_data.begin() +
+            static_cast<std::ptrdiff_t>((i + 1) * npts_per_box),
+        data.values[i].begin());
+  }
+
+  return data.create_function(world);
+}
+#else
+template <typename T, std::size_t NDIM>
+void FunctionIO<T, NDIM>::write_function_hdf5(const Function<T, NDIM> &,
+                                              const std::string &) {
+  MADNESS_EXCEPTION("FunctionIO HDF5 support is unavailable in this build", 0);
+}
+
+template <typename T, std::size_t NDIM>
+Function<T, NDIM> FunctionIO<T, NDIM>::read_function_hdf5(
+    World &world, const std::string &) {
+  MADNESS_EXCEPTION("FunctionIO HDF5 support is unavailable in this build", 0);
+  FunctionFactory<T, NDIM> factory(world);
+  return factory.empty();
+}
+#endif
