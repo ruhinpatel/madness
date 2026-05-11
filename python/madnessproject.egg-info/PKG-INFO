@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: madnessproject
+Version: 0.0.0
+Summary: Object-based Python API for MADNESS calculations — mirrors daltonproject
+Requires-Python: >=3.10
+Requires-Dist: numpy
+Requires-Dist: qcelemental
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"

@@ -1,0 +1,29 @@
+dft
+    dipole true
+    econv 1e-07
+    maxiter 20
+    gopt true
+    protocol [0.0001,1e-06,1e-7]
+end
+
+
+molecule
+               eprec  1.0000e-06 # defined   smoothing for the nuclear potential
+               units  atomic
+ O    0.0000000000            0.0000000000            0.21293780
+ H    0.0000000000            1.42131521           -0.85175395
+ H    0.0000000000           -1.42131521           -0.85175395
+end
+
+response
+  dipole.frequencies [0.0,0.02,0.04,0.06,0.08,0.1]
+  dipole.directions xyz
+  quadratic true
+  nuclear true
+  nuclear.directions xyz
+  requested_properties [polarizability,raman]
+  nuclear.frequencies 0.0
+  nuclear.atom_indices [0,1,2]
+  property true
+end
+
