@@ -128,7 +128,15 @@ if(MADNESS_ENABLE_HDF5)
   # dump_mra_trees joins the list so its --coeffs native-coefficient export can call
   # save_function_hdf5 (the structured /meta+/keys+/coeffs writer in
   # solvers/function_hdf5_io.hpp); guarded by MADNESS_HAS_HDF5 in the source.
-  foreach(_hdf5_tgt molresponse test_calc_manager_run dump_mra_trees)
+  # MRA-NN training data generator: rho0 + vnuc (no SCF) + optional converged rho.
+  add_mad_executable(dump_training_functions
+                     "tools/dump_training_functions.cpp;GroundState.cpp"
+                     "MADchem")
+  target_include_directories(dump_training_functions PRIVATE ${HDF5_INCLUDE_DIRS})
+  target_link_libraries(dump_training_functions PRIVATE ${HDF5_LIBRARIES})
+  target_compile_definitions(dump_training_functions PRIVATE MADNESS_HAS_HDF5)
+
+  foreach(_hdf5_tgt molresponse test_calc_manager_run dump_mra_trees dump_training_functions)
     if(TARGET ${_hdf5_tgt})
       target_include_directories(${_hdf5_tgt} PRIVATE ${HDF5_INCLUDE_DIRS})
       target_link_libraries(${_hdf5_tgt} PRIVATE ${HDF5_LIBRARIES})
