@@ -167,19 +167,18 @@ int main(int argc, char** argv) {
 
                 auto gs = GroundState::from_archive(world, archive_path, calc.molecule);
 
-                const vecfuncT& mos  = gs.orbitals_alpha();
-                const tensorT&  occ  = gs.occupations_alpha();
-
-                // rho = sum_i occ_i * |psi_i|^2
-                vecfuncT vsq = square(world, mos);
-                compress(world, vsq);
-                real_function_3d rho = real_factory_3d(world);
-                rho.compress();
-                for (std::size_t i = 0; i < vsq.size(); ++i) {
-                    if (occ[i]) rho.gaxpy(1.0, vsq[i], occ[i], false);
+                // rho = alpha density + beta density
+                // For spin-restricted: beta = alpha, so rho = 2 * alpha
+                real_function_3d rho = gs.scf().make_density(world,
+                    gs.occupations_alpha(), gs.orbitals_alpha());
+                if (gs.is_spin_restricted()) {
+                    rho.scale(2.0);
+                } else {
+                    rho.gaxpy(1.0,
+                        gs.scf().make_density(world,
+                            gs.occupations_beta(), gs.orbitals_beta()),
+                        1.0);
                 }
-                world.gop.fence();
-                vsq.clear();
                 rho.truncate();
 
                 if (world.rank() == 0)
