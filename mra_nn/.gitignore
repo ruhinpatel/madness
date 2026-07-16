@@ -1,0 +1,11 @@
+# override repo-level build* exclusion for these scripts
+!build_dump_training.sh
+!step0/build_and_test.sh
+training_data/
+logs/
+.venv/
+step0/moldft_h2o/
+step0/smoke_out/
+step0/logs/
+__pycache__/
+*.pyc

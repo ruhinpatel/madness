@@ -1,0 +1,13 @@
+dft
+  xc lda
+  thresh 1e-4
+  k 6
+  maxiter 20
+end
+
+molecule
+  units angstrom
+  C    0.00000    0.00000    0.00000
+  O    0.00000    0.00000    1.16000
+  O    0.00000    0.00000   -1.16000
+end
