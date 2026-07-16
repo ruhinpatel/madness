@@ -21,6 +21,11 @@ Use `madness-build-hdf5/` for all MRA-NN tools:
 
 `xc lda`, `thresh 1e-4`, `k 6`, `maxiter 20`, units angstrom.
 
+**Geometry source:** Coordinates are taken from the W4-11 thermochemical benchmark set
+(Karton et al.) at `/gpfs/projects/rjh/ruhin/perf_pipeline/molecules/W4-11/`,
+converted from bohr to angstrom. These are CCSD(T)/cc-pVTZ optimized geometries.
+Note: ch3oh and h2o2 use the W4-11 entries `methanol` and `hooh` respectively.
+
 **IMPORTANT:** New molecules must be added to both `molecules/` and the `MOLECULES` array in `gen_training_data.sh`.
 
 ## Current Status (2026-07-08)
