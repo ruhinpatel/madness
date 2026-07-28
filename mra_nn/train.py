@@ -198,7 +198,8 @@ def main():
         "train_loss_refine", "train_sigma_delta_rho", "train_sigma_log_dnorm",
         "train_sigma_refine",
         "val_total_loss", "val_loss_delta_rho", "val_loss_log_dnorm",
-        "val_loss_refine", "val_refine_f1",
+        "val_loss_refine", "val_sigma_delta_rho", "val_sigma_log_dnorm",
+        "val_sigma_refine", "val_refine_f1",
     ]
     csv_file = open(csv_path, "w", newline="")
     csv_writer = csv.DictWriter(csv_file, fieldnames=csv_fields)
