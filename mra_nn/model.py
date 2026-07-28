@@ -170,6 +170,7 @@ class MRANet(nn.Module):
         final_dim = trunk_dims[-1]  # 256
         self.head_delta_rho = nn.Linear(final_dim, k_cubed)
         self.head_log_dnorm = nn.Linear(final_dim, 1)
+        nn.init.constant_(self.head_log_dnorm.bias, -27.5)
         self.head_refine = nn.Linear(final_dim, 1)
 
     def forward(
