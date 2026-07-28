@@ -442,20 +442,33 @@ Single GPU — 2.1M parameters and in-memory data do not benefit from multi-GPU.
 - Saved every epoch: `best.pt` (best val delta-rho MSE) + `last.pt`
 - Metrics: `checkpoints/<run_name>/metrics.csv` — one row per epoch with all losses, refine F1, LR
 
-### 7.4 File Layout
+### 7.4 File Layout & Claude Model Recommendations
+
+Each file is tagged with the minimum Claude model sufficient for implementation.
+Use as reference when switching models during implementation.
 
 ```
 mra_nn/
-  model.py          # MRANet architecture (FiLM MLP, halo encoder, heads)
-  dataset.py        # PyTorch Dataset wrapping training_dataset.h5
-  train.py          # Training loop, logging, checkpointing
-  predict.py        # Tree-walk inference + integral normalization
-  evaluate.py       # Metrics: delta-rho MSE, refine F1, integral error
+  model.py          # MRANet architecture                    → Opus 4.6
+  losses.py         # Focal loss + uncertainty-weighted loss  → Opus 4.6
+  dataset.py        # PyTorch Dataset wrapping HDF5           → Sonnet 4.6
+  train.py          # Training loop, logging, checkpointing   → Opus 4.6
+  predict.py        # Tree-walk inference + normalization      → Opus 4.6
+  evaluate.py       # Metrics + Step 6 gate                   → Sonnet 4.6
   configs/
-    default.yaml    # All hyperparameters
+    default.yaml    # All hyperparameters                     → Sonnet 4.6
   slurm/
-    train_a100.sh   # Slurm submission script
+    train_a100.sh   # Slurm submission script                 → Sonnet 4.6
+  tests/
+    test_dataset.py  # Dataset tests                          → Sonnet 4.6
+    test_model.py    # Architecture tests                     → Sonnet 4.6
+    test_losses.py   # Loss function tests                    → Sonnet 4.6
+    test_predict.py  # Inference tests                        → Sonnet 4.6
 ```
+
+**Rationale:** Opus 4.6 for files requiring architectural judgment (FiLM conditioning,
+multi-task loss balancing, tree-walk inference with pymra interfaces). Sonnet 4.6 for
+boilerplate tasks (config, data loading, metrics, Slurm, tests).
 
 ### 7.5 Slurm Script
 
