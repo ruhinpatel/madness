@@ -1,0 +1,56 @@
+# MRA-NN Step 6 — default training configuration
+# See design spec: docs/superpowers/specs/2026-07-27-mra-nn-step6-model-training-design.md
+
+data:
+  dataset_path: /gpfs/projects/rjh/ruhin/mra_nn/training_dataset.h5
+  raw_data_dir: /gpfs/projects/rjh/ruhin/mra_nn/training_data
+  train_molecules:
+    - h2o
+    - nh3
+    - ch4
+    - co2
+    - hf
+    - n2
+    - co
+    - hcn
+    - c2h4
+    - c2h6
+    - h2co
+    - hcl
+  val_molecules:
+    - ch3oh
+  test_molecules:
+    - h2o2
+    - c2h2
+
+model:
+  k: 6
+  ndim: 3
+  k_cubed: 216
+  n_faces: 6
+  n_levels: 19              # levels 0-18
+  level_embed_dim: 32
+  face_embed_dim: 8
+  halo_encoder_hidden: 256
+  halo_encoder_out: 128
+  trunk_dims: [1024, 512, 256]
+  dropout: 0.1
+
+training:
+  batch_size: 4096
+  max_epochs: 200
+  lr: 1.0e-3
+  min_lr: 1.0e-5
+  weight_decay: 1.0e-4
+  warmup_epochs: 5
+  patience: 20
+  num_workers: 4
+  seed: 42
+
+loss:
+  focal_gamma: 2.0
+  focal_alpha: 0.75
+  refine_pos_weight: 10.0   # oversampling weight for refine=1 positives
+
+checkpoint:
+  dir: /gpfs/projects/rjh/ruhin/mra_nn/checkpoints
