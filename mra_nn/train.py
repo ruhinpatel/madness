@@ -142,7 +142,7 @@ def main():
 
     # Baseline
     baseline_mse = compute_baseline_mse(train_dl.dataset)
-    print(f"  Baseline MSE (predict zero): {baseline_mse:.6f}")
+    print(f"  Baseline MSE (predict zero): {baseline_mse:.3e}")
 
     # Model
     model = build_model(cfg).to(device)
@@ -279,7 +279,7 @@ def main():
     # Final summary
     print(f"\nTraining complete.")
     print(f"  Best val delta-rho MSE: {best_val_dr_mse:.6f}")
-    print(f"  Baseline MSE:           {baseline_mse:.6f}")
+    print(f"  Baseline MSE:           {baseline_mse:.3e}")
     if best_val_dr_mse < baseline_mse:
         print(f"  Model BEATS baseline by {(1 - best_val_dr_mse/baseline_mse)*100:.1f}%")
     else:

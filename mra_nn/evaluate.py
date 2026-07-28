@@ -70,7 +70,7 @@ def main():
     val_dr_mse = val_metrics["loss_delta_rho"]
     gate1_pass = val_dr_mse < baseline_mse
     print(f"  Val delta-rho MSE:  {val_dr_mse:.6f}")
-    print(f"  Baseline (zero):    {baseline_mse:.6f}")
+    print(f"  Baseline (zero):    {baseline_mse:.3e}")
     print(f"  Improvement:        {(1 - val_dr_mse/baseline_mse)*100:.1f}%")
     print(f"  Gate 1:             {'PASS' if gate1_pass else 'FAIL'}")
 
