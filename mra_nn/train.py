@@ -142,7 +142,7 @@ def main():
 
     # Baseline
     baseline_mse = compute_baseline_mse(train_dl.dataset)
-    print(f"  Baseline MSE (predict zero): {baseline_mse:.3e}")
+    print(f"  Baseline MSE (rho0 as-is): {baseline_mse:.3e}")
 
     # Model
     model = build_model(cfg).to(device)
