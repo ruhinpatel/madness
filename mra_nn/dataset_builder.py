@@ -3,12 +3,12 @@
 For each molecule's (rho0, vnuc, rho) .mad.h5 triple, enumerates all boxes in
 the rho tree at every level (internal nodes + leaves), computes input features
 (s-coefficients of rho0 and vnuc at the box and its 6 face-adjacent halo boxes),
-and stores targets (Δρ s-coefficients, log‖d_rho‖, refine flag).  Below-leaf
-negatives (children of rho leaves that are NOT in the tree) are added as
-refine=0 samples with d ≈ 0.
+and stores targets (rho s-coefficients (direct), log‖d_rho‖, refine flag).
+Below-leaf negatives (children of rho leaves that are NOT in the tree) are added
+as refine=0 samples with d ≈ 0.
 
-Gate (--gate): verifies the stored rho0_s + delta_rho reproduces the original
-rho leaf coefficients exactly (machine precision), then checks ∫ρ = N.
+Gate (--gate): verifies the stored rho_s matches the original rho leaf
+coefficients exactly (float32 precision), then checks ∫ρ = N.
 
 Usage:
     python dataset_builder.py \\
@@ -24,7 +24,7 @@ HDF5 layout:
         vnuc_s    [N, k^3]    float32  vnuc s-coeffs at box
         halo_rho0 [N, 6, k^3] float32  rho0 s-coeffs at 6 face-adjacent halos
         halo_vnuc [N, 6, k^3] float32  vnuc s-coeffs at 6 face-adjacent halos
-        delta_rho [N, k^3]    float32  target: (rho - rho0) s-coeffs at box
+        rho_s     [N, k^3]    float32  target: rho s-coeffs at box (direct)
         log_dnorm [N]         float32  target: log(||d_rho||), floor -30
         refine    [N]         int8     target: 1=needs refinement, 0=leaf/negative
         level     [N]         int8     box level n
@@ -94,7 +94,7 @@ def process_molecule(mol_dir: Path) -> dict:
     vnuc_s_list    = []
     halo_rho0_list = []
     halo_vnuc_list = []
-    delta_rho_list = []
+    rho_s_list     = []
     log_dnorm_list = []
     refine_list    = []
     level_list     = []
@@ -106,15 +106,15 @@ def process_molecule(mol_dir: Path) -> dict:
         vnuc_s = node_s(vnuc, key)
         h_rho0 = np.stack([safe_node_s(rho0, hk, k, ndim).ravel()
                            for hk in halo_keys(key)])          # [6, k^3]
-        h_vnuc = np.stack([safe_node_s(vnuc, hk, k, ndim).ravel()
-                           for hk in halo_keys(key)])
-        drho   = (rho_s - rho0_s).ravel()
+        h_vnuc     = np.stack([safe_node_s(vnuc, hk, k, ndim).ravel()
+                               for hk in halo_keys(key)])
+        rho_s_flat = rho_s.ravel()
 
         rho0_s_list.append(rho0_s.ravel())
         vnuc_s_list.append(vnuc_s.ravel())
         halo_rho0_list.append(h_rho0)
         halo_vnuc_list.append(h_vnuc)
-        delta_rho_list.append(drho)
+        rho_s_list.append(rho_s_flat)
         log_dnorm_list.append(log_d)
         refine_list.append(refine)
         level_list.append(key.n)
@@ -145,7 +145,7 @@ def process_molecule(mol_dir: Path) -> dict:
         "vnuc_s":    np.array(vnuc_s_list,    dtype=np.float32),
         "halo_rho0": np.array(halo_rho0_list, dtype=np.float32),
         "halo_vnuc": np.array(halo_vnuc_list, dtype=np.float32),
-        "delta_rho": np.array(delta_rho_list, dtype=np.float32),
+        "rho_s":     np.array(rho_s_list,     dtype=np.float32),
         "log_dnorm": np.array(log_dnorm_list, dtype=np.float32),
         "refine":    np.array(refine_list,    dtype=np.int8),
         "level":     np.array(level_list,     dtype=np.int8),
@@ -169,9 +169,8 @@ def write_molecule(hf: h5py.File, mol_name: str, data: dict) -> None:
 
 
 def gate_check(mol_name: str, data: dict, mol_dir: Path) -> bool:
-    """Verify rho0_s + delta_rho reproduces the original rho leaf coefficients,
-    then check ∫ρ = N via the original tree's integral()."""
-    rho0 = read_function(str(mol_dir / "rho0.mad.h5"))
+    """Verify rho_s matches the original rho leaf coefficients directly (float32
+    precision), then check ∫ρ = N via the original tree's integral()."""
     rho  = read_function(str(mol_dir / "rho.mad.h5"))
     k, ndim = rho.k, rho.ndim
 
@@ -184,8 +183,8 @@ def gate_check(mol_name: str, data: dict, mol_dir: Path) -> bool:
         n_lev = int(data["level"][i])
         l     = tuple(int(x) for x in data["l_trans"][i])
         key   = Key(n_lev, l)
-        # reconstruct rho s-coefficients from dataset
-        rho_s_from_data = (data["rho0_s"][i] + data["delta_rho"][i]).reshape((k,) * ndim)
+        # check rho s-coefficients from dataset match tree directly
+        rho_s_from_data = data["rho_s"][i].reshape((k,) * ndim)
         rho_s_from_tree = node_s(rho, key)
         err = float(np.max(np.abs(rho_s_from_data - rho_s_from_tree)))
         if err > max_err:
@@ -203,7 +202,7 @@ def gate_check(mol_name: str, data: dict, mol_dir: Path) -> bool:
         n_lev = int(data["level"][i])
         l     = tuple(int(x) for x in data["l_trans"][i])
         key   = Key(n_lev, l)
-        s     = (data["rho0_s"][i] + data["delta_rho"][i]).reshape((k,) * ndim)
+        s     = data["rho_s"][i].reshape((k,) * ndim)
         rho_tree.nodes[key] = Node(s=s.astype(float))
     # internal node stubs: add has_children nodes so the tree is navigable
     for i in np.where(~mask & (data["negative"] == 0))[0]:
