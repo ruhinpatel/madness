@@ -8,19 +8,11 @@
 #SBATCH --output=/gpfs/projects/rjh/ruhin/mra_nn/logs/train_%j.out
 #SBATCH --error=/gpfs/projects/rjh/ruhin/mra_nn/logs/train_%j.err
 
-set -euo pipefail
-
 export PATH="/cm/shared/apps/slurm/21.08.8/bin:$PATH"
 source /gpfs/projects/rjh/ruhin/mra_nn/.venv/bin/activate
 export PYTHONPATH=/gpfs/projects/rjh/adrian/pymra/src:${PYTHONPATH:-}
 
-CONFIG="${1:-/gpfs/projects/rjh/ruhin/madness-ruhin/mra_nn/configs/default.yaml}"
+cd /gpfs/projects/rjh/ruhin/madness-ruhin
 
-echo "=== MRA-NN Training ==="
-echo "Date: $(date)"
-echo "Node: $(hostname)"
-echo "GPU:  $(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null || echo 'N/A')"
-echo "Config: $CONFIG"
-echo ""
-
-python /gpfs/projects/rjh/ruhin/madness-ruhin/mra_nn/train.py --config "$CONFIG"
+python mra_nn/train.py \
+    --config mra_nn/configs/default.yaml
