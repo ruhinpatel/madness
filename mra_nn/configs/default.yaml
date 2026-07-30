@@ -1,4 +1,4 @@
-# MRA-NN Step 6 — default training configuration
+# MRA-NN Step 6 — default training configuration (v2: k=8, direct coefficients)
 # See design spec: docs/superpowers/specs/2026-07-27-mra-nn-step6-model-training-design.md
 
 data:
@@ -24,9 +24,9 @@ data:
     - c2h2
 
 model:
-  k: 6
+  k: 8
   ndim: 3
-  k_cubed: 216
+  k_cubed: 512
   n_faces: 6
   n_levels: 19              # levels 0-18
   level_embed_dim: 32
