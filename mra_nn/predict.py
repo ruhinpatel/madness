@@ -2,9 +2,9 @@
 
 Walks the MRA tree top-down. At each node:
   - Extract features (rho0_s, vnuc_s, halos, level)
-  - Forward through the model -> (delta_rho, log_dnorm, refine_prob)
+  - Forward through the model -> (rho_s, log_dnorm, refine_prob)
   - If refine_prob > threshold: mark as internal, enqueue children
-  - Else: mark as leaf with coefficients = rho0_s + delta_rho
+  - Else: mark as leaf with coefficients = rho_s (predicted directly)
 
 Post-processing: scale all leaf coefficients so integral(rho) = N.
 
@@ -174,14 +174,14 @@ def predict_density(
         features = _extract_features(
             current_level_keys, rho0_tree, vnuc_tree, device
         )
-        delta_rho, log_dnorm, refine_logit = model(
+        rho_s, log_dnorm, refine_logit = model(
             features["rho0_s"], features["vnuc_s"],
             features["halo_rho0"], features["halo_vnuc"],
             features["level"],
         )
 
         refine_prob = torch.sigmoid(refine_logit).cpu().numpy()
-        delta_rho_np = delta_rho.cpu().numpy()
+        rho_s_np = rho_s.cpu().numpy()
 
         next_level_keys = []
         for i, key in enumerate(current_level_keys):
@@ -193,9 +193,8 @@ def predict_density(
                 _ensure_children_exist(vnuc_tree, key)
                 next_level_keys.extend(key.children())
             else:
-                # Leaf — write predicted coefficients
-                rho0_s = node_s(rho0_tree, key).ravel()
-                pred_s = rho0_s + delta_rho_np[i]
+                # Leaf — write predicted coefficients directly
+                pred_s = rho_s_np[i]
                 predicted_tree.nodes[key] = Node(
                     s=pred_s.reshape((k,) * ndim).astype(np.float64)
                 )
