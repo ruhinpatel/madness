@@ -1,6 +1,7 @@
 dft
   xc lda
   thresh 1e-6
+  k 8
   maxiter 20
 end
 
