@@ -56,7 +56,7 @@ class FocalLoss(nn.Module):
 class UncertaintyWeightedLoss(nn.Module):
     """Uncertainty-weighted multi-task loss (Kendall et al. 2018).
 
-    L = (1/2*sigma1^2)*L_dr + (1/2*sigma2^2)*L_ld + (1/sigma3^2)*L_ref
+    L = (1/2*sigma1^2)*L_rs + (1/2*sigma2^2)*L_ld + (1/sigma3^2)*L_ref
         + log(sigma1*sigma2*sigma3)
 
     Three learnable log-sigma parameters auto-balance the task weights.
@@ -66,22 +66,22 @@ class UncertaintyWeightedLoss(nn.Module):
         super().__init__()
         self.focal_loss = FocalLoss(gamma=focal_gamma, alpha=focal_alpha)
         # Learnable log-variance parameters, initialized to 0 (sigma=1)
-        self.log_sigma_dr = nn.Parameter(torch.tensor(0.0))
+        self.log_sigma_rs = nn.Parameter(torch.tensor(0.0))
         self.log_sigma_ld = nn.Parameter(torch.tensor(0.0))
         self.log_sigma_ref = nn.Parameter(torch.tensor(0.0))
 
     def forward(
         self,
         batch: Dict[str, torch.Tensor],
-        pred_delta_rho: torch.Tensor,
+        pred_rho_s: torch.Tensor,
         pred_log_dnorm: torch.Tensor,
         pred_refine_logit: torch.Tensor,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
         """
         Parameters
         ----------
-        batch : dict with keys delta_rho, log_dnorm, refine, negative
-        pred_delta_rho    : [B, 216]
+        batch : dict with keys rho_s, log_dnorm, refine, negative
+        pred_rho_s        : [B, 512]
         pred_log_dnorm    : [B]
         pred_refine_logit : [B]
 
@@ -90,15 +90,8 @@ class UncertaintyWeightedLoss(nn.Module):
         total_loss : scalar
         components : dict of individual losses and sigma values (detached)
         """
-        # --- Delta-rho MSE (positive samples only) ---
-        pos_mask = batch["negative"] == 0
-        n_pos = pos_mask.sum()
-        if n_pos > 0:
-            loss_dr = F.mse_loss(
-                pred_delta_rho[pos_mask], batch["delta_rho"][pos_mask]
-            )
-        else:
-            loss_dr = torch.tensor(0.0, device=pred_delta_rho.device)
+        # --- rho_s MSE (all samples) ---
+        loss_rs = F.mse_loss(pred_rho_s, batch["rho_s"])
 
         # --- Log-dnorm MSE (all samples) ---
         loss_ld = F.mse_loss(pred_log_dnorm, batch["log_dnorm"])
@@ -107,22 +100,22 @@ class UncertaintyWeightedLoss(nn.Module):
         loss_ref = self.focal_loss(pred_refine_logit, batch["refine"])
 
         # --- Uncertainty weighting ---
-        sigma_dr = torch.exp(self.log_sigma_dr)
+        sigma_rs = torch.exp(self.log_sigma_rs)
         sigma_ld = torch.exp(self.log_sigma_ld)
         sigma_ref = torch.exp(self.log_sigma_ref)
 
         total = (
-            0.5 / sigma_dr**2 * loss_dr
+            0.5 / sigma_rs**2 * loss_rs
             + 0.5 / sigma_ld**2 * loss_ld
             + 1.0 / sigma_ref**2 * loss_ref
-            + self.log_sigma_dr + self.log_sigma_ld + self.log_sigma_ref
+            + self.log_sigma_rs + self.log_sigma_ld + self.log_sigma_ref
         )
 
         components = {
-            "loss_delta_rho": loss_dr.detach(),
+            "loss_rho_s": loss_rs.detach(),
             "loss_log_dnorm": loss_ld.detach(),
             "loss_refine": loss_ref.detach(),
-            "sigma_delta_rho": sigma_dr.detach(),
+            "sigma_rho_s": sigma_rs.detach(),
             "sigma_log_dnorm": sigma_ld.detach(),
             "sigma_refine": sigma_ref.detach(),
         }

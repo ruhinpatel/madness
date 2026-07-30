@@ -53,12 +53,12 @@ def train_one_epoch(
         optimizer.zero_grad(set_to_none=True)
 
         with torch.amp.autocast("cuda", enabled=device.type == "cuda"):
-            dr, ld, ref = model(
+            rs, ld, ref = model(
                 batch["rho0_s"], batch["vnuc_s"],
                 batch["halo_rho0"], batch["halo_vnuc"],
                 batch["level"],
             )
-            total_loss, components = loss_fn(batch, dr, ld, ref)
+            total_loss, components = loss_fn(batch, rs, ld, ref)
 
         scaler.scale(total_loss).backward()
         scaler.step(optimizer)
@@ -91,12 +91,12 @@ def evaluate(
         batch = {k: v.to(device, non_blocking=True) for k, v in batch.items()}
 
         with torch.amp.autocast("cuda", enabled=device.type == "cuda"):
-            dr, ld, ref = model(
+            rs, ld, ref = model(
                 batch["rho0_s"], batch["vnuc_s"],
                 batch["halo_rho0"], batch["halo_vnuc"],
                 batch["level"],
             )
-            total_loss, components = loss_fn(batch, dr, ld, ref)
+            total_loss, components = loss_fn(batch, rs, ld, ref)
 
         for k, v in components.items():
             accum[k] = accum.get(k, 0.0) + v.item()
@@ -194,11 +194,11 @@ def main():
     csv_path = ckpt_dir / "metrics.csv"
     csv_fields = [
         "epoch", "lr",
-        "train_total_loss", "train_loss_delta_rho", "train_loss_log_dnorm",
-        "train_loss_refine", "train_sigma_delta_rho", "train_sigma_log_dnorm",
+        "train_total_loss", "train_loss_rho_s", "train_loss_log_dnorm",
+        "train_loss_refine", "train_sigma_rho_s", "train_sigma_log_dnorm",
         "train_sigma_refine",
-        "val_total_loss", "val_loss_delta_rho", "val_loss_log_dnorm",
-        "val_loss_refine", "val_sigma_delta_rho", "val_sigma_log_dnorm",
+        "val_total_loss", "val_loss_rho_s", "val_loss_log_dnorm",
+        "val_loss_refine", "val_sigma_rho_s", "val_sigma_log_dnorm",
         "val_sigma_refine", "val_refine_f1",
     ]
     csv_file = open(csv_path, "w", newline="")
@@ -206,11 +206,11 @@ def main():
     csv_writer.writeheader()
 
     # Training loop
-    best_val_dr_mse = float("inf")
+    best_val_rs_mse = float("inf")
     patience_counter = 0
 
     print(f"\nTraining for up to {max_epochs} epochs (patience={train_cfg['patience']})...")
-    print(f"{'Epoch':>5} {'LR':>10} {'TrainLoss':>10} {'ValDrMSE':>10} {'ValRefF1':>9} {'Best':>5}")
+    print(f"{'Epoch':>5} {'LR':>10} {'TrainLoss':>10} {'ValRsMSE':>10} {'ValRefF1':>9} {'Best':>5}")
     print("-" * 55)
 
     for epoch in range(max_epochs):
@@ -234,9 +234,9 @@ def main():
         csv_file.flush()
 
         # Checkpointing
-        is_best = val_metrics["loss_delta_rho"] < best_val_dr_mse
+        is_best = val_metrics["loss_rho_s"] < best_val_rs_mse
         if is_best:
-            best_val_dr_mse = val_metrics["loss_delta_rho"]
+            best_val_rs_mse = val_metrics["loss_rho_s"]
             patience_counter = 0
             torch.save({
                 "epoch": epoch,
@@ -244,7 +244,7 @@ def main():
                 "loss_fn_state_dict": loss_fn.state_dict(),
                 "optimizer_state_dict": optimizer.state_dict(),
                 "scheduler_state_dict": scheduler.state_dict(),
-                "best_val_dr_mse": best_val_dr_mse,
+                "best_val_rs_mse": best_val_rs_mse,
                 "config": cfg,
             }, ckpt_dir / "best.pt")
         else:
@@ -257,7 +257,7 @@ def main():
             "loss_fn_state_dict": loss_fn.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
             "scheduler_state_dict": scheduler.state_dict(),
-            "best_val_dr_mse": best_val_dr_mse,
+            "best_val_rs_mse": best_val_rs_mse,
             "config": cfg,
         }, ckpt_dir / "last.pt")
 
@@ -265,7 +265,7 @@ def main():
         best_marker = "*" if is_best else ""
         print(
             f"{epoch:5d} {current_lr:10.2e} {train_metrics['total_loss']:10.4f} "
-            f"{val_metrics['loss_delta_rho']:10.6f} {val_metrics['refine_f1']:9.4f} "
+            f"{val_metrics['loss_rho_s']:10.6f} {val_metrics['refine_f1']:9.4f} "
             f"{best_marker:>5}"
         )
 
@@ -278,10 +278,10 @@ def main():
 
     # Final summary
     print(f"\nTraining complete.")
-    print(f"  Best val delta-rho MSE: {best_val_dr_mse:.6f}")
-    print(f"  Baseline MSE:           {baseline_mse:.3e}")
-    if best_val_dr_mse < baseline_mse:
-        print(f"  Model BEATS baseline by {(1 - best_val_dr_mse/baseline_mse)*100:.1f}%")
+    print(f"  Best val rho_s MSE: {best_val_rs_mse:.6f}")
+    print(f"  Baseline MSE:       {baseline_mse:.3e}")
+    if best_val_rs_mse < baseline_mse:
+        print(f"  Model BEATS baseline by {(1 - best_val_rs_mse/baseline_mse)*100:.1f}%")
     else:
         print(f"  Model DOES NOT beat baseline")
     print(f"  Checkpoints saved to: {ckpt_dir}")

@@ -41,37 +41,37 @@ def test_uncertainty_weighted_loss_output_keys():
     uwl = UncertaintyWeightedLoss(focal_gamma=2.0, focal_alpha=0.75)
     B = 16
     batch = {
-        "delta_rho": torch.randn(B, 216),
+        "rho_s": torch.randn(B, 512),
         "log_dnorm": torch.randn(B),
         "refine": torch.randint(0, 2, (B,), dtype=torch.float32),
         "negative": torch.zeros(B),
     }
-    pred_dr = torch.randn(B, 216)
+    pred_rs = torch.randn(B, 512)
     pred_ld = torch.randn(B)
     pred_ref = torch.randn(B)
-    total, components = uwl(batch, pred_dr, pred_ld, pred_ref)
-    assert "loss_delta_rho" in components
+    total, components = uwl(batch, pred_rs, pred_ld, pred_ref)
+    assert "loss_rho_s" in components
     assert "loss_log_dnorm" in components
     assert "loss_refine" in components
-    assert "sigma_delta_rho" in components
+    assert "sigma_rho_s" in components
     assert total.requires_grad
 
 
-def test_uncertainty_weighted_loss_masks_negatives():
+def test_uncertainty_weighted_loss_includes_negatives():
     uwl = UncertaintyWeightedLoss(focal_gamma=2.0, focal_alpha=0.75)
     B = 16
-    # All negatives — delta_rho loss should be zero
     batch = {
-        "delta_rho": torch.randn(B, 216),
+        "rho_s": torch.randn(B, 512),
         "log_dnorm": torch.randn(B),
         "refine": torch.zeros(B),
         "negative": torch.ones(B),  # all negatives
     }
-    pred_dr = torch.randn(B, 216)
+    pred_rs = torch.randn(B, 512)
     pred_ld = torch.randn(B)
     pred_ref = torch.randn(B)
-    total, components = uwl(batch, pred_dr, pred_ld, pred_ref)
-    assert components["loss_delta_rho"].item() == 0.0
+    total, components = uwl(batch, pred_rs, pred_ld, pred_ref)
+    # rho_s loss should be non-zero even for negatives
+    assert components["loss_rho_s"].item() > 0.0
 
 
 def test_uncertainty_sigmas_are_learnable():
