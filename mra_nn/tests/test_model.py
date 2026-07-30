@@ -30,47 +30,47 @@ def test_build_model(model):
 
 def test_forward_shapes(model):
     B = 8
-    rho0_s = torch.randn(B, 216)
-    vnuc_s = torch.randn(B, 216)
-    halo_rho0 = torch.randn(B, 6, 216)
-    halo_vnuc = torch.randn(B, 6, 216)
+    rho0_s = torch.randn(B, 512)
+    vnuc_s = torch.randn(B, 512)
+    halo_rho0 = torch.randn(B, 6, 512)
+    halo_vnuc = torch.randn(B, 6, 512)
     level = torch.randint(0, 19, (B,))
 
-    delta_rho, log_dnorm, refine_logit = model(
+    rho_s, log_dnorm, refine_logit = model(
         rho0_s, vnuc_s, halo_rho0, halo_vnuc, level
     )
-    assert delta_rho.shape == (B, 216)
+    assert rho_s.shape == (B, 512)
     assert log_dnorm.shape == (B,)
     assert refine_logit.shape == (B,)
 
 
 def test_forward_gradients(model):
     B = 4
-    rho0_s = torch.randn(B, 216, requires_grad=True)
-    vnuc_s = torch.randn(B, 216)
-    halo_rho0 = torch.randn(B, 6, 216)
-    halo_vnuc = torch.randn(B, 6, 216)
+    rho0_s = torch.randn(B, 512, requires_grad=True)
+    vnuc_s = torch.randn(B, 512)
+    halo_rho0 = torch.randn(B, 6, 512)
+    halo_vnuc = torch.randn(B, 6, 512)
     level = torch.randint(0, 19, (B,))
 
-    delta_rho, log_dnorm, refine_logit = model(
+    rho_s, log_dnorm, refine_logit = model(
         rho0_s, vnuc_s, halo_rho0, halo_vnuc, level
     )
-    loss = delta_rho.sum() + log_dnorm.sum() + refine_logit.sum()
+    loss = rho_s.sum() + log_dnorm.sum() + refine_logit.sum()
     loss.backward()
     assert rho0_s.grad is not None
-    assert rho0_s.grad.shape == (B, 216)
+    assert rho0_s.grad.shape == (B, 512)
 
 
 def test_parameter_count(model):
     total = sum(p.numel() for p in model.parameters())
-    # Spec says ~2.1M — allow 1.5M to 3M range
-    assert 1_500_000 < total < 3_000_000, f"Parameter count {total} outside expected range"
+    # k=8 (512-dim): expect ~2.8M — allow 2M to 4M range
+    assert 2_000_000 < total < 4_000_000, f"Parameter count {total} outside expected range"
 
 
 def test_halo_encoder_weight_sharing(model):
     """The halo encoder should use shared weights for all 6 faces."""
     B = 2
-    halo_input = torch.randn(B, 6, 216)
+    halo_input = torch.randn(B, 6, 512)
     # Access the halo encoder directly
     assert hasattr(model, "halo_encoder")
 

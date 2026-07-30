@@ -1,11 +1,11 @@
 """MRANet — FiLM-conditioned MLP with factored halo encoder.
 
-Architecture (from design spec):
-  - Halo encoder: shared MLP across 6 face-adjacent neighbors (440 -> 256 -> 128)
-  - Center features: rho0_s(216) + vnuc_s(216) = 432
-  - Trunk: 3 FiLM-conditioned layers (1200 -> 1024 -> 512 -> 256)
+Architecture (from design spec, k=8):
+  - Halo encoder: shared MLP across 6 face-adjacent neighbors (1032 -> 256 -> 128)
+  - Center features: rho0_s(512) + vnuc_s(512) = 1024
+  - Trunk: 3 FiLM-conditioned layers (1792 -> 1024 -> 512 -> 256)
   - FiLM: level embedding (32-dim) -> per-layer gamma/beta
-  - Heads: delta_rho (256->216), log_dnorm (256->1), refine (256->1)
+  - Heads: rho_s (256->512), log_dnorm (256->1), refine (256->1)
 """
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ class HaloEncoder(nn.Module):
 
     def __init__(
         self,
-        k_cubed: int = 216,
+        k_cubed: int = 512,
         face_embed_dim: int = 8,
         hidden_dim: int = 256,
         out_dim: int = 128,
@@ -120,14 +120,14 @@ class MRANet(nn.Module):
     """FiLM-conditioned MLP with factored halo encoder for MRA-NN.
 
     Three output heads:
-      - delta_rho: density correction [B, k^3]
+      - rho_s: density coefficients [B, k^3]
       - log_dnorm: wavelet norm [B]
       - refine: refinement logit [B] (apply sigmoid externally for probabilities)
     """
 
     def __init__(
         self,
-        k_cubed: int = 216,
+        k_cubed: int = 512,
         n_faces: int = 6,
         n_levels: int = 19,
         level_embed_dim: int = 32,
@@ -152,10 +152,10 @@ class MRANet(nn.Module):
         self.level_embedding = nn.Embedding(n_levels, level_embed_dim)
 
         # --- Trunk MLP with FiLM conditioning ---
-        # Input: halo_encoder output (6*128=768) + center features (2*216=432)
+        # Input: halo_encoder output (6*128=768) + center features (2*512=1024)
         center_dim = 2 * k_cubed  # rho0_s + vnuc_s
         halo_out_dim = n_faces * halo_encoder_out
-        trunk_input_dim = halo_out_dim + center_dim  # 768 + 432 = 1200
+        trunk_input_dim = halo_out_dim + center_dim  # 768 + 1024 = 1792
 
         trunk_layers = []
         in_dim = trunk_input_dim
@@ -168,7 +168,7 @@ class MRANet(nn.Module):
 
         # --- Output heads ---
         final_dim = trunk_dims[-1]  # 256
-        self.head_delta_rho = nn.Linear(final_dim, k_cubed)
+        self.head_rho_s = nn.Linear(final_dim, k_cubed)
         self.head_log_dnorm = nn.Linear(final_dim, 1)
         nn.init.constant_(self.head_log_dnorm.bias, -27.5)
         self.head_refine = nn.Linear(final_dim, 1)
@@ -192,7 +192,7 @@ class MRANet(nn.Module):
 
         Returns
         -------
-        delta_rho    : [B, k^3]
+        rho_s        : [B, k^3]
         log_dnorm    : [B]
         refine_logit : [B]
         """
@@ -200,24 +200,24 @@ class MRANet(nn.Module):
         halo_emb = self.halo_encoder(halo_rho0, halo_vnuc)  # [B, 768]
 
         # Center features
-        center = torch.cat([rho0_s, vnuc_s], dim=-1)  # [B, 432]
+        center = torch.cat([rho0_s, vnuc_s], dim=-1)  # [B, 1024]
 
         # Level embedding (for FiLM, not concatenated)
         level_emb = self.level_embedding(level)  # [B, 32]
 
         # Trunk input
-        x = torch.cat([halo_emb, center], dim=-1)  # [B, 1200]
+        x = torch.cat([halo_emb, center], dim=-1)  # [B, 1792]
 
         # FiLM-conditioned trunk
         for film_layer in self.trunk:
             x = film_layer(x, level_emb)
 
         # Output heads
-        delta_rho = self.head_delta_rho(x)  # [B, 216]
+        rho_s = self.head_rho_s(x)  # [B, 512]
         log_dnorm = self.head_log_dnorm(x).squeeze(-1)  # [B]
         refine_logit = self.head_refine(x).squeeze(-1)  # [B]
 
-        return delta_rho, log_dnorm, refine_logit
+        return rho_s, log_dnorm, refine_logit
 
 
 def build_model(cfg: dict) -> MRANet:
