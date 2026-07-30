@@ -26,7 +26,7 @@ class MRADataset(Dataset):
 
     FIELD_NAMES = [
         "rho0_s", "vnuc_s", "halo_rho0", "halo_vnuc",
-        "delta_rho", "log_dnorm", "refine", "level", "negative",
+        "rho_s", "log_dnorm", "refine", "level", "negative",
     ]
 
     def __init__(self, h5_path: str, molecules: List[str]) -> None:
@@ -111,10 +111,10 @@ def build_dataloaders(cfg: dict) -> Tuple[DataLoader, DataLoader, DataLoader]:
 
 
 def compute_baseline_mse(dataset: MRADataset) -> float:
-    """Mean squared error of predicting Δρ = 0, over positive samples only.
+    """Mean squared error of using rho0_s as the density prediction.
 
-    This is the "predict zero correction" baseline — the model must beat this.
+    This is the "use promolecular density as-is" baseline — the model must beat this.
     """
-    mask = dataset.data["negative"] == 0
-    delta_rho = dataset.data["delta_rho"][mask]  # [N_pos, 216]
-    return float(delta_rho.pow(2).mean())
+    rho_s = dataset.data["rho_s"]       # [N, 512]
+    rho0_s = dataset.data["rho0_s"]     # [N, 512]
+    return float((rho_s - rho0_s).pow(2).mean())
