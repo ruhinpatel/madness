@@ -1,7 +1,7 @@
 """MRA-NN evaluation and Step 6 gate check.
 
 Computes all metrics from the design spec:
-  1. Val delta-rho MSE < baseline (predict zero)
+  1. Val rho_s MSE < baseline (use rho0 as-is)
   2. Refine F1 > 0.5
   3. Predicted tree writable to HDF5
   4. Integral error < 0.01 after normalization
@@ -53,8 +53,8 @@ def main():
     model.eval()
     print(f"Loaded model from {args.checkpoint} (epoch {ckpt['epoch']})")
 
-    # --- Gate 1: Val delta-rho MSE < baseline ---
-    print("\n=== Gate 1: Val delta-rho MSE vs baseline ===")
+    # --- Gate 1: Val rho_s MSE < baseline ---
+    print("\n=== Gate 1: Val rho_s MSE vs baseline ===")
     _, val_dl, _ = build_dataloaders(cfg)
     val_ds = val_dl.dataset
 
@@ -67,11 +67,11 @@ def main():
     val_metrics = evaluate_epoch(model, loss_fn, val_dl, device)
     baseline_mse = compute_baseline_mse(val_ds)
 
-    val_dr_mse = val_metrics["loss_delta_rho"]
-    gate1_pass = val_dr_mse < baseline_mse
-    print(f"  Val delta-rho MSE:  {val_dr_mse:.6f}")
-    print(f"  Baseline (zero):    {baseline_mse:.3e}")
-    print(f"  Improvement:        {(1 - val_dr_mse/baseline_mse)*100:.1f}%")
+    val_rs_mse = val_metrics["loss_rho_s"]
+    gate1_pass = val_rs_mse < baseline_mse
+    print(f"  Val rho_s MSE:      {val_rs_mse:.6f}")
+    print(f"  Baseline (rho0):    {baseline_mse:.6f}")
+    print(f"  Improvement:        {(1 - val_rs_mse/baseline_mse)*100:.1f}%")
     print(f"  Gate 1:             {'PASS' if gate1_pass else 'FAIL'}")
 
     # --- Gate 2: Refine F1 > 0.5 ---
