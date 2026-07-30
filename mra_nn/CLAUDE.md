@@ -19,7 +19,10 @@ Use `madness-build-hdf5/` for all MRA-NN tools:
 
 ## Molecule Inputs Standard
 
-`xc lda`, `thresh 1e-4`, `k 6`, `maxiter 20`, units angstrom.
+`xc lda`, `thresh 1e-6`, `k 8`, `maxiter 20`, units angstrom.
+
+**IMPORTANT:** `k 8` must be set explicitly — `dump_training_functions` does not auto-derive k
+from thresh. Omitting `k` causes k=-1 and a tensor assertion crash.
 
 **Geometry source:** Coordinates are taken from the W4-11 thermochemical benchmark set
 (Karton et al.) at `/gpfs/projects/rjh/ruhin/perf_pipeline/molecules/W4-11/`,
@@ -28,11 +31,11 @@ Note: ch3oh and h2o2 use the W4-11 entries `methanol` and `hooh` respectively.
 
 **IMPORTANT:** New molecules must be added to both `molecules/` and the `MOLECULES` array in `gen_training_data.sh`.
 
-## Current Status (2026-07-08)
+## Current Status (2026-07-30)
 
-- Step 0 done: 5 molecules (h2o, nh3, ch4, co2, hf), all 15 .mad.h5 files validated
-- feat/mra-nn-data pushed to GitHub (ruhinpatel/madness)
-- Step 1 in progress: run `scripts/validate_vs_cube.py` against mo_0.mad.h5
+- Training data regeneration at k=8/thresh=1e-6 in progress (Slurm job 2106527)
+- All Step 6 model code complete on feat/mra-nn-data
+- Awaiting k=8 data to run dataset_builder.py and GPU training (Task 7)
 
 ## Verification
 
