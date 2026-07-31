@@ -64,6 +64,12 @@ def train_one_epoch(
         scaler.step(optimizer)
         scaler.update()
 
+        # Clamp log_sigma_rs so sigma_rho_s stays <= 1.
+        # Without this, sigma_rs -> inf and the rho_s gradient vanishes,
+        # causing the head to drift and produce MSE worse than baseline.
+        with torch.no_grad():
+            loss_fn.log_sigma_rs.clamp_(max=0.0)
+
         # Accumulate metrics
         for k, v in components.items():
             accum[k] = accum.get(k, 0.0) + v.item()
@@ -211,8 +217,8 @@ def main():
     patience_counter = 0
 
     print(f"\nTraining for up to {max_epochs} epochs (patience={train_cfg['patience']})...")
-    print(f"{'Epoch':>5} {'LR':>10} {'TrainLoss':>10} {'ValRsMSE':>10} {'ValRefF1':>9} {'Best':>5}")
-    print("-" * 55)
+    print(f"{'Epoch':>5} {'LR':>10} {'TrainLoss':>10} {'ValRsMSE':>10} {'ValRefF1':>9} {'SigRs':>8} {'Best':>5}")
+    print("-" * 65)
 
     for epoch in range(max_epochs):
         t0 = time.time()
@@ -267,7 +273,7 @@ def main():
         print(
             f"{epoch:5d} {current_lr:10.2e} {train_metrics['total_loss']:10.4f} "
             f"{val_metrics['loss_rho_s']:10.6f} {val_metrics['refine_f1']:9.4f} "
-            f"{best_marker:>5}"
+            f"{val_metrics['sigma_rho_s']:8.4f} {best_marker:>5}"
         )
 
         # Early stopping
