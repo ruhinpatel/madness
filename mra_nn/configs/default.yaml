@@ -38,7 +38,7 @@ model:
 
 training:
   batch_size: 4096
-  max_epochs: 60
+  max_epochs: 120
   lr: 1.0e-3
   min_lr: 1.0e-5
   weight_decay: 1.0e-4

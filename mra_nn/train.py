@@ -86,12 +86,14 @@ def evaluate(
     loader: torch.utils.data.DataLoader,
     device: torch.device,
 ) -> dict:
-    """Evaluate on val/test set. Returns dict of mean losses + refine F1."""
+    """Evaluate on val/test set. Returns dict of mean losses + refine F1 + positive-only rho_s MSE."""
     model.eval()
     accum = {}
     n_batches = 0
     all_ref_logits = []
     all_ref_targets = []
+    pred_rs_pos = []
+    true_rs_pos = []
 
     for batch in loader:
         batch = {k: v.to(device, non_blocking=True) for k, v in batch.items()}
@@ -112,12 +114,26 @@ def evaluate(
         all_ref_logits.append(ref.cpu())
         all_ref_targets.append(batch["refine"].cpu())
 
+        # Accumulate positive (in-tree) samples for positive-only MSE
+        pos_mask = (batch["negative"] == 0)
+        if pos_mask.any():
+            pred_rs_pos.append(rs[pos_mask].cpu().float())
+            true_rs_pos.append(batch["rho_s"][pos_mask].cpu().float())
+
     metrics = {k: v / n_batches for k, v in accum.items()}
 
     # Refine F1
     all_logits = torch.cat(all_ref_logits)
     all_targets = torch.cat(all_ref_targets)
     metrics["refine_f1"] = compute_refine_f1(all_logits, all_targets)
+
+    # Positive-only rho_s MSE — the gate metric
+    if pred_rs_pos:
+        metrics["pos_rho_s_mse"] = torch.nn.functional.mse_loss(
+            torch.cat(pred_rs_pos), torch.cat(true_rs_pos)
+        ).item()
+    else:
+        metrics["pos_rho_s_mse"] = float("inf")
 
     return metrics
 
@@ -147,8 +163,14 @@ def main():
     print(f"  Test:  {len(test_dl.dataset)} samples")
 
     # Baseline
-    baseline_mse = compute_baseline_mse(train_dl.dataset)
-    print(f"  Baseline MSE (rho0 as-is): {baseline_mse:.3e}")
+    # Positive-only baseline: MSE between rho0 and rho for in-tree nodes.
+    # Matches the gate metric in evaluate.py. All-sample baseline (~5e-8) is
+    # dominated by 87% negatives where rho≈rho0≈0 and is not a useful signal.
+    pos_mask = (train_dl.dataset.data["negative"] == 0)
+    rho_s_pos = train_dl.dataset.data["rho_s"][pos_mask]
+    rho0_s_pos = train_dl.dataset.data["rho0_s"][pos_mask]
+    baseline_mse = float((rho_s_pos - rho0_s_pos).pow(2).mean())
+    print(f"  Baseline MSE (pos, rho0 as-is): {baseline_mse:.3e}")
 
     # Model
     model = build_model(cfg).to(device)
@@ -206,7 +228,7 @@ def main():
         "train_sigma_refine",
         "val_total_loss", "val_loss_rho_s", "val_loss_log_dnorm",
         "val_loss_refine", "val_sigma_rho_s", "val_sigma_log_dnorm",
-        "val_sigma_refine", "val_refine_f1",
+        "val_sigma_refine", "val_refine_f1", "val_pos_rho_s_mse",
     ]
     csv_file = open(csv_path, "w", newline="")
     csv_writer = csv.DictWriter(csv_file, fieldnames=csv_fields)
@@ -217,8 +239,8 @@ def main():
     patience_counter = 0
 
     print(f"\nTraining for up to {max_epochs} epochs (patience={train_cfg['patience']})...")
-    print(f"{'Epoch':>5} {'LR':>10} {'TrainLoss':>10} {'ValRsMSE':>10} {'ValRefF1':>9} {'SigRs':>8} {'Best':>5}")
-    print("-" * 65)
+    print(f"{'Epoch':>5} {'LR':>10} {'TrainLoss':>10} {'PosValMSE':>11} {'ValRefF1':>9} {'SigRs':>8} {'Best':>5}")
+    print("-" * 67)
 
     for epoch in range(max_epochs):
         t0 = time.time()
@@ -240,10 +262,11 @@ def main():
         csv_writer.writerow(row)
         csv_file.flush()
 
-        # Checkpointing
-        is_best = val_metrics["loss_rho_s"] < best_val_rs_mse
+        # Checkpointing — use positive-only val MSE (the gate metric) for best selection.
+        # All-sample val MSE saturates to ~0 by epoch 30 and can't distinguish further.
+        is_best = val_metrics["pos_rho_s_mse"] < best_val_rs_mse
         if is_best:
-            best_val_rs_mse = val_metrics["loss_rho_s"]
+            best_val_rs_mse = val_metrics["pos_rho_s_mse"]
             patience_counter = 0
             torch.save({
                 "epoch": epoch,
@@ -272,7 +295,7 @@ def main():
         best_marker = "*" if is_best else ""
         print(
             f"{epoch:5d} {current_lr:10.2e} {train_metrics['total_loss']:10.4f} "
-            f"{val_metrics['loss_rho_s']:10.6f} {val_metrics['refine_f1']:9.4f} "
+            f"{val_metrics['pos_rho_s_mse']:11.3e} {val_metrics['refine_f1']:9.4f} "
             f"{val_metrics['sigma_rho_s']:8.4f} {best_marker:>5}"
         )
 
@@ -285,8 +308,8 @@ def main():
 
     # Final summary
     print(f"\nTraining complete.")
-    print(f"  Best val rho_s MSE: {best_val_rs_mse:.6f}")
-    print(f"  Baseline MSE:       {baseline_mse:.3e}")
+    print(f"  Best pos val rho_s MSE: {best_val_rs_mse:.3e}")
+    print(f"  Baseline (pos, rho0):   {baseline_mse:.3e}")
     if best_val_rs_mse < baseline_mse:
         print(f"  Model BEATS baseline by {(1 - best_val_rs_mse/baseline_mse)*100:.1f}%")
     else:
