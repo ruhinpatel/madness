@@ -80,3 +80,47 @@ def test_film_conditioning_exists(model):
     assert hasattr(model, "level_embedding")
     # Level embedding should have 19 entries (levels 0-18)
     assert model.level_embedding.num_embeddings == 19
+
+
+def test_single_task_forward_shapes():
+    """Single-task model returns (rho_s, None, None)."""
+    model = MRANet(single_task=True)
+    B = 8
+    rho0_s = torch.randn(B, 512)
+    vnuc_s = torch.randn(B, 512)
+    halo_rho0 = torch.randn(B, 6, 512)
+    halo_vnuc = torch.randn(B, 6, 512)
+    level = torch.randint(0, 19, (B,))
+
+    rho_s, log_dnorm, refine_logit = model(
+        rho0_s, vnuc_s, halo_rho0, halo_vnuc, level
+    )
+    assert rho_s.shape == (B, 512)
+    assert log_dnorm is None
+    assert refine_logit is None
+
+
+def test_single_task_no_extra_heads():
+    """Single-task model should not have log_dnorm or refine head parameters."""
+    model = MRANet(single_task=True)
+    assert not hasattr(model, "head_log_dnorm")
+    assert not hasattr(model, "head_refine")
+    assert hasattr(model, "head_rho_s")
+
+
+def test_single_task_parameter_count():
+    """Single-task model should have fewer parameters (no log_dnorm/refine heads)."""
+    model_full = MRANet(single_task=False)
+    model_st = MRANet(single_task=True)
+    full_params = sum(p.numel() for p in model_full.parameters())
+    st_params = sum(p.numel() for p in model_st.parameters())
+    assert st_params < full_params
+    # Difference should be exactly: log_dnorm head (256+1=257) + refine head (256+1=257) = 514
+    assert full_params - st_params == 514
+
+
+def test_single_task_build_model(cfg):
+    """build_model with single_task config should produce single-task model."""
+    cfg["model"]["single_task"] = True
+    model = build_model(cfg)
+    assert not hasattr(model, "head_log_dnorm")

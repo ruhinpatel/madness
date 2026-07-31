@@ -132,3 +132,39 @@ class UncertaintyWeightedLoss(nn.Module):
             "sigma_refine": sigma_ref.detach(),
         }
         return total, components
+
+
+class SingleTaskLoss(nn.Module):
+    """Weighted MSE loss for single-task rho_s training.
+
+    No learnable parameters. Positive (in-tree) samples weighted higher
+    to counteract the 87% negative imbalance in the dataset.
+    """
+
+    def __init__(self, pos_rho_weight: float = 10.0) -> None:
+        super().__init__()
+        self.pos_rho_weight = pos_rho_weight
+
+    def forward(
+        self,
+        batch: Dict[str, torch.Tensor],
+        pred_rho_s: torch.Tensor,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        """
+        Parameters
+        ----------
+        batch : dict with keys rho_s, negative
+        pred_rho_s : [B, 512]
+
+        Returns
+        -------
+        total_loss : scalar
+        components : dict with loss_rho_s (detached)
+        """
+        is_pos = (batch["negative"] == 0).float()
+        sample_w = 1.0 + (self.pos_rho_weight - 1.0) * is_pos
+        per_sample_mse = F.mse_loss(
+            pred_rho_s, batch["rho_s"], reduction="none"
+        ).mean(dim=-1)
+        loss = (sample_w * per_sample_mse).sum() / sample_w.sum()
+        return loss, {"loss_rho_s": loss.detach()}

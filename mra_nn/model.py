@@ -136,6 +136,7 @@ class MRANet(nn.Module):
         halo_encoder_out: int = 128,
         trunk_dims: tuple = (1024, 512, 256),
         dropout: float = 0.1,
+        single_task: bool = False,
     ) -> None:
         super().__init__()
 
@@ -168,10 +169,12 @@ class MRANet(nn.Module):
 
         # --- Output heads ---
         final_dim = trunk_dims[-1]  # 256
+        self.single_task = single_task
         self.head_rho_s = nn.Linear(final_dim, k_cubed)
-        self.head_log_dnorm = nn.Linear(final_dim, 1)
-        nn.init.constant_(self.head_log_dnorm.bias, -27.5)
-        self.head_refine = nn.Linear(final_dim, 1)
+        if not single_task:
+            self.head_log_dnorm = nn.Linear(final_dim, 1)
+            nn.init.constant_(self.head_log_dnorm.bias, -27.5)
+            self.head_refine = nn.Linear(final_dim, 1)
 
     def forward(
         self,
@@ -215,6 +218,8 @@ class MRANet(nn.Module):
         # Output heads — rho_s uses residual from rho0_s so the model only
         # needs to learn the small correction (rho_s - rho0_s).
         rho_s = self.head_rho_s(x) + rho0_s  # [B, 512]
+        if self.single_task:
+            return rho_s, None, None
         log_dnorm = self.head_log_dnorm(x).squeeze(-1)  # [B]
         refine_logit = self.head_refine(x).squeeze(-1)  # [B]
 
@@ -234,4 +239,5 @@ def build_model(cfg: dict) -> MRANet:
         halo_encoder_out=m["halo_encoder_out"],
         trunk_dims=tuple(m["trunk_dims"]),
         dropout=m["dropout"],
+        single_task=m.get("single_task", False),
     )

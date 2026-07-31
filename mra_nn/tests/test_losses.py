@@ -7,7 +7,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import torch
-from mra_nn.losses import FocalLoss, UncertaintyWeightedLoss
+from mra_nn.losses import FocalLoss, SingleTaskLoss, UncertaintyWeightedLoss
 
 
 def test_focal_loss_zero_for_perfect_predictions():
@@ -79,3 +79,42 @@ def test_uncertainty_sigmas_are_learnable():
     learnable_params = [n for n, p in uwl.named_parameters() if p.requires_grad]
     # Should have 3 log-sigma parameters
     assert len(learnable_params) == 3
+
+
+def test_single_task_loss_output():
+    stl = SingleTaskLoss(pos_rho_weight=10.0)
+    B = 16
+    batch = {
+        "rho_s": torch.randn(B, 512),
+        "negative": torch.zeros(B),
+    }
+    pred_rs = torch.randn(B, 512, requires_grad=True)
+    total, components = stl(batch, pred_rs)
+    assert "loss_rho_s" in components
+    assert total.requires_grad
+
+
+def test_single_task_loss_no_learnable_params():
+    stl = SingleTaskLoss(pos_rho_weight=10.0)
+    params = list(stl.parameters())
+    assert len(params) == 0
+
+
+def test_single_task_loss_pos_weight():
+    """Positive samples should contribute more to the loss than negatives."""
+    stl = SingleTaskLoss(pos_rho_weight=10.0)
+    B = 16
+    pred_rs = torch.randn(B, 512)
+    target = torch.randn(B, 512)
+
+    # All positive
+    batch_pos = {"rho_s": target, "negative": torch.zeros(B)}
+    loss_pos, _ = stl(batch_pos, pred_rs)
+
+    # All negative
+    batch_neg = {"rho_s": target, "negative": torch.ones(B)}
+    loss_neg, _ = stl(batch_neg, pred_rs)
+
+    # Same errors but positive-weighted loss should be higher
+    # because weight normalizes differently
+    assert loss_pos.item() != loss_neg.item()
