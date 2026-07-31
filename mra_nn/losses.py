@@ -62,9 +62,15 @@ class UncertaintyWeightedLoss(nn.Module):
     Three learnable log-sigma parameters auto-balance the task weights.
     """
 
-    def __init__(self, focal_gamma: float = 2.0, focal_alpha: float = 0.75) -> None:
+    def __init__(
+        self,
+        focal_gamma: float = 2.0,
+        focal_alpha: float = 0.75,
+        pos_rho_weight: float = 10.0,
+    ) -> None:
         super().__init__()
         self.focal_loss = FocalLoss(gamma=focal_gamma, alpha=focal_alpha)
+        self.pos_rho_weight = pos_rho_weight
         # Learnable log-variance parameters, initialized to 0 (sigma=1)
         self.log_sigma_rs = nn.Parameter(torch.tensor(0.0))
         self.log_sigma_ld = nn.Parameter(torch.tensor(0.0))
@@ -90,8 +96,14 @@ class UncertaintyWeightedLoss(nn.Module):
         total_loss : scalar
         components : dict of individual losses and sigma values (detached)
         """
-        # --- rho_s MSE (all samples) ---
-        loss_rs = F.mse_loss(pred_rho_s, batch["rho_s"])
+        # --- rho_s MSE, upweighted for positive (in-tree) samples ---
+        # negative==0 means the box is a real density node; ==1 means below-leaf.
+        # With ~87% negatives, unweighted MSE is dominated by near-zero trivial
+        # values. pos_rho_weight=10 flips gradient to ~75% positive signal.
+        is_pos = (batch["negative"] == 0).float()  # [B]
+        sample_w = 1.0 + (self.pos_rho_weight - 1.0) * is_pos  # [B]
+        per_sample_mse = F.mse_loss(pred_rho_s, batch["rho_s"], reduction="none").mean(dim=-1)  # [B]
+        loss_rs = (sample_w * per_sample_mse).sum() / sample_w.sum()
 
         # --- Log-dnorm MSE (all samples) ---
         loss_ld = F.mse_loss(pred_log_dnorm, batch["log_dnorm"])

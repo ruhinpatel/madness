@@ -154,6 +154,7 @@ def main():
     loss_fn = UncertaintyWeightedLoss(
         focal_gamma=loss_cfg["focal_gamma"],
         focal_alpha=loss_cfg["focal_alpha"],
+        pos_rho_weight=loss_cfg.get("pos_rho_weight", 10.0),
     ).to(device)
 
     # Optimizer (includes loss_fn's learnable sigmas)

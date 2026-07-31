@@ -1,7 +1,10 @@
 """MRA-NN evaluation and Step 6 gate check.
 
 Computes all metrics from the design spec:
-  1. Val rho_s MSE < baseline (use rho0 as-is)
+  1. Val rho_s MSE < baseline (use rho0 as-is), evaluated on POSITIVE samples
+     only (negative==0). Negative (below-leaf) samples are synthetic training
+     data that MADNESS never visits during SCF, so including them in the gate
+     distorts the metric toward near-zero trivial values.
   2. Refine F1 > 0.5
   3. Predicted tree writable to HDF5
   4. Integral error < 0.01 after normalization
@@ -53,29 +56,54 @@ def main():
     model.eval()
     print(f"Loaded model from {args.checkpoint} (epoch {ckpt['epoch']})")
 
-    # --- Gate 1: Val rho_s MSE < baseline ---
-    print("\n=== Gate 1: Val rho_s MSE vs baseline ===")
+    # --- Gate 1: Val rho_s MSE < baseline on POSITIVE samples only ---
+    print("\n=== Gate 1: Val rho_s MSE vs baseline (positive samples only) ===")
     _, val_dl, _ = build_dataloaders(cfg)
     val_ds = val_dl.dataset
 
     loss_fn = UncertaintyWeightedLoss(
         focal_gamma=cfg["loss"]["focal_gamma"],
         focal_alpha=cfg["loss"]["focal_alpha"],
+        pos_rho_weight=cfg["loss"].get("pos_rho_weight", 10.0),
     ).to(device)
     loss_fn.load_state_dict(ckpt["loss_fn_state_dict"])
 
-    val_metrics = evaluate_epoch(model, loss_fn, val_dl, device)
-    baseline_mse = compute_baseline_mse(val_ds)
+    # Positive-only mask (negative==0 means the box is in the rho tree)
+    pos_mask = (val_ds.data["negative"] == 0)
+    n_pos = int(pos_mask.sum())
+    n_total = len(val_ds)
+    print(f"  Val set: {n_pos} positive / {n_total} total samples")
 
-    val_rs_mse = val_metrics["loss_rho_s"]
+    # Baseline MSE on positives: use rho0_s as-is
+    rho_s_pos  = val_ds.data["rho_s"][pos_mask]   # [N_pos, k^3]
+    rho0_s_pos = val_ds.data["rho0_s"][pos_mask]  # [N_pos, k^3]
+    baseline_mse = float((rho_s_pos - rho0_s_pos).pow(2).mean())
+
+    # Model MSE on positives — batched forward pass
+    pos_indices = torch.where(pos_mask)[0]
+    pred_rs_list = []
+    batch_size = 2048
+    with torch.no_grad():
+        for start in range(0, n_pos, batch_size):
+            idx = pos_indices[start:start + batch_size]
+            b = {k: val_ds.data[k][idx].to(device)
+                 for k in ["rho0_s", "vnuc_s", "halo_rho0", "halo_vnuc", "level"]}
+            pred_rs, _, _ = model(
+                b["rho0_s"], b["vnuc_s"], b["halo_rho0"], b["halo_vnuc"], b["level"]
+            )
+            pred_rs_list.append(pred_rs.cpu())
+    pred_rs_pos = torch.cat(pred_rs_list, dim=0)
+    val_rs_mse = float(torch.nn.functional.mse_loss(pred_rs_pos, rho_s_pos))
+
     gate1_pass = val_rs_mse < baseline_mse
-    print(f"  Val rho_s MSE:      {val_rs_mse:.6f}")
-    print(f"  Baseline (rho0):    {baseline_mse:.6f}")
-    print(f"  Improvement:        {(1 - val_rs_mse/baseline_mse)*100:.1f}%")
-    print(f"  Gate 1:             {'PASS' if gate1_pass else 'FAIL'}")
+    print(f"  Val rho_s MSE (pos):   {val_rs_mse:.3e}")
+    print(f"  Baseline rho0 (pos):   {baseline_mse:.3e}")
+    print(f"  Improvement:           {(1 - val_rs_mse/baseline_mse)*100:.1f}%")
+    print(f"  Gate 1:                {'PASS' if gate1_pass else 'FAIL'}")
 
     # --- Gate 2: Refine F1 > 0.5 ---
     print("\n=== Gate 2: Refine F1 ===")
+    val_metrics = evaluate_epoch(model, loss_fn, val_dl, device)
     refine_f1 = val_metrics["refine_f1"]
     gate2_pass = refine_f1 > 0.5
     print(f"  Refine F1:          {refine_f1:.4f}")
