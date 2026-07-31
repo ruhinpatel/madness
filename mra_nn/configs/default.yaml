@@ -17,8 +17,9 @@ data:
     - c2h6
     - h2co
     - hcl
-  val_molecules:
     - ch3oh
+  val_molecules:
+    - ch3f
   test_molecules:
     - h2o2
     - c2h2
