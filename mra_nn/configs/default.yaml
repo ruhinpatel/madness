@@ -39,8 +39,8 @@ model:
 training:
   batch_size: 4096
   max_epochs: 120
-  lr: 1.0e-3
-  min_lr: 1.0e-5
+  lr: 2.0e-4
+  min_lr: 1.0e-6
   weight_decay: 1.0e-4
   warmup_epochs: 5
   patience: 20
