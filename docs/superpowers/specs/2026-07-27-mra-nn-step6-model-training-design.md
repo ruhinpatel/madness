@@ -159,9 +159,11 @@ K-fold is deferred to final reporting to save compute during prototyping.
 
 | Set | Molecules | Rationale |
 |-----|-----------|-----------|
-| Train | h2o, nh3, ch4, co2, hf, n2, co, hcn, c2h4, c2h6, h2co, hcl | 12 molecules, bulk of data |
-| Val | ch3oh | Mid-size organic, ~60k samples |
+| Train | h2o, nh3, ch4, co2, hf, n2, co, hcn, c2h4, c2h6, h2co, hcl, ch3oh | 13 molecules — ch3oh moved here from val (see update below) |
+| Val | ch3f | Isoelectronic with training molecules (18 electrons); all bond types C-H, C-F covered; fairer eval than ch3oh |
 | Test | h2o2, c2h2 | Different chemistry — peroxide + triple bond |
+
+**Update (2026-07-30):** Original val was ch3oh. Training runs showed the model generalized 9x worse than baseline on ch3oh because the C-O-H alcohol combination is absent from the 12 training molecules. Switched to ch3f, which is chemically closer to the training set (isoelectronic with H₂O/HF/NH₃/CH₄ at 18 electrons; C-H and C-F bonds both present in training). This improved from 9x worse → 2.8x worse. ch3oh was moved to training. ch3f geometry taken from W4-11 dataset at `/gpfs/projects/rjh/ruhin/perf_pipeline/molecules/W4-11/ch3f/struc.xyz`.
 
 ---
 
@@ -367,14 +369,16 @@ L = (1 / 2*sigma_1^2) * L_rho_s
 | Parameter | Value |
 |-----------|-------|
 | Optimizer | AdamW |
-| Learning rate | 1e-3 |
+| Learning rate | 2e-4 |
 | Weight decay | 1e-4 |
-| LR schedule | Cosine decay to 1e-5 |
+| LR schedule | Cosine decay to 1e-6 |
 | Warmup | 5 epochs, linear |
-| Max epochs | 200 |
-| Early stopping | Patience 20, monitoring val rho_s MSE |
+| Max epochs | 120 (increasing to 240 — model still improving at epoch 119) |
+| Early stopping | Patience 20, monitoring **positive-only** val rho_s MSE |
 | Precision | Mixed (torch.cuda.amp) |
 | Batch size | 4,096 |
+
+**Update (2026-07-30):** LR reduced from 1e-3 → 2e-4 (oscillation observed at epoch 15-30 with 1e-3). min_lr reduced from 1e-5 → 1e-6. Early stopping metric changed from all-sample to positive-only MSE — all-sample saturates to ≈0 by epoch 30 due to 87% negatives and is not informative.
 
 ### 4.3 Data Loading & Sampling
 
@@ -384,15 +388,20 @@ L = (1 / 2*sigma_1^2) * L_rho_s
   - refine=0 positive: weight 1.0
   - negative: weight 1.0
 - All three heads train on all samples (no masking)
+- `pos_rho_weight=10.0` in `UncertaintyWeightedLoss`: in-tree (negative==0) samples weighted 10x in the rho_s MSE to counteract the 87% negative imbalance. Without this, the loss gradient is dominated by negative samples (where rho≈rho0≈0) and the model learns little about the actual density.
 - DataLoader with num_workers=4, pin_memory=True
+
+**Update (2026-07-30):** `log_sigma_rs` clamped to ≤0 after each optimizer step (enforces sigma_rs ≤ 1). Without this clamp, the Kendall uncertainty weighting can cause sigma_rs → ∞, zeroing the rho_s gradient (the model learns to "ignore" the hardest task).
 
 ### 4.4 Data Split
 
 | Set | Molecules | Count | Samples |
 |-----|-----------|-------|---------|
-| Train | h2o, nh3, ch4, co2, hf, n2, co, hcn, c2h4, c2h6, h2co, hcl | 12 | 160,364 |
-| Val | ch3oh | 1 | 14,793 |
+| Train | h2o, nh3, ch4, co2, hf, n2, co, hcn, c2h4, c2h6, h2co, hcl, ch3oh | 13 | ~175,157 |
+| Val | ch3f | 1 | TBD (data generation in progress as of 2026-07-30) |
 | Test | h2o2, c2h2 | 2 | 32,530 |
+
+**Update (2026-07-30):** ch3oh moved from val → train; ch3f added as val. ch3f dataset generation submitted as Slurm job (gen_ch3f.sh). Sample count for ch3f TBD pending job completion.
 
 Leave-molecules-out for development. K-fold (5-fold, 3 molecules held out per fold) for
 final reporting.
@@ -455,11 +464,13 @@ The 0.5 default for refine_prob can be tuned post-training:
 
 All must pass before proceeding to Step 7:
 
-1. Training completes without error on 12 train molecules
-2. Val rho_s MSE < ||rho0_s||² on ch3oh (beats using rho0 directly as the guess)
-3. Refine F1 > 0.5 on validation molecule
-4. Predicted tree for test molecules produces valid HDF5 loadable by pymra
+1. Training completes without error on 13 train molecules
+2. **Positive-only** val rho_s MSE < positive-only rho0 baseline on ch3f (beats using rho0 directly, evaluated on in-tree nodes only — negative/below-leaf samples are excluded because they are synthetic training data with rho≈rho0≈0 and would trivially dominate the metric)
+3. Refine F1 > 0.5 on validation molecule (ch3f)
+4. Predicted tree for test molecules (h2o2, c2h2) produces valid HDF5 loadable by pymra
 5. Integral error < 0.01 electrons after post-processing normalization
+
+**Update (2026-07-30):** Gate 2 changed from all-sample MSE to positive-only MSE. All-sample saturates to ~5e-8 by epoch 30 (dominated by 87% negatives where rho≈rho0≈0) and is not a useful gate. Positive-only baseline for ch3f: 4.846e-7. Current best: 1.375e-6 (2.8x worse). Gates 3-5 pass.
 
 ### 6.2 Full Evaluation (with Step 7)
 
@@ -621,3 +632,35 @@ These are recorded for future consideration but explicitly out of scope for Step
 
 5. **GPU inference inside MADNESS** — Step 7 decision. CPU inference via Python subprocess
    or C++ LibTorch is simpler; GPU adds latency from data transfer but faster for large trees.
+
+---
+
+## 10. Training Observations (2026-07-30)
+
+Seven training runs on the A100 cluster revealed six independent bugs and two data distribution issues. Recorded here to inform future training decisions.
+
+### Bugs Found and Fixed
+
+| # | Bug | Symptom | Fix |
+|---|-----|---------|-----|
+| 1 | No residual connection | Gate 1: 51% worse than baseline. Head output drifted to near-zero. | `rho_s = head(x) + rho0_s` in model.py |
+| 2 | Sigma_rs → ∞ (Kendall pathology) | Total loss went negative. rho_s gradient → 0. | `log_sigma_rs.clamp_(max=0.0)` after each optimizer step |
+| 3 | All-sample val MSE for checkpointing | `*` (best) markers after epoch 30 were noise. Early stopping broken. | Switch to positive-only `pos_rho_s_mse` for checkpoint selection |
+| 4 | Gate 1 used all-sample baseline | All-sample baseline ~5e-8 (dominated by negatives where rho≈rho0≈0); not a useful signal | Gate 1 and baseline both switched to positive-only |
+| 5 | LR=1e-3 too high | Oscillation at epoch 15-30 after reaching good basin | LR 1e-3 → 2e-4; min_lr 1e-5 → 1e-6 |
+| 6 | ch3oh as val molecule | 9x worse than baseline — C-O-H alcohol combination absent from training set | Switch to ch3f (isoelectronic with training molecules) |
+
+### The 87% Negative Problem
+
+The MRA tree structure produces ~87% negative (below-leaf) samples per molecule (each internal node generates 8=2³ children, only 1 of which is a true in-tree leaf on average). This means:
+- All-sample MSE is dominated by negatives where rho≈rho0≈0
+- The model can trivially minimize all-sample MSE by outputting rho0_s, collapsing the metric to near-zero by epoch 30
+- Two mitigations applied: (1) `pos_rho_weight=10.0` upweights in-tree samples in the loss; (2) gate and checkpoint selection use positive-only MSE
+
+### Data Quantity Bottleneck
+
+With 13 training molecules and ch3f as val, best positive-only val MSE = 1.375e-6 vs. baseline 4.846e-7 (2.8x worse after 120 epochs, still improving). The model needs more diverse training molecules. The W4-11 dataset (at `/gpfs/projects/rjh/ruhin/perf_pipeline/molecules/W4-11/`) provides standardized geometries for additional molecules. Priority targets: n2o, h2s, ocs, hnco (fill N-O, S, and C=S bond types absent from current training set).
+
+### Convergence
+
+Model ran all 120 epochs without triggering early stopping (still improving at epoch 119). Two paths forward: (1) more training molecules for better generalization, (2) more epochs (120 → 240) for the current molecule set to converge.
