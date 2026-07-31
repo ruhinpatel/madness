@@ -17,7 +17,7 @@ import torch
 import yaml
 
 from mra_nn.dataset import MRADataset, build_dataloaders, compute_baseline_mse
-from mra_nn.losses import UncertaintyWeightedLoss
+from mra_nn.losses import SingleTaskLoss, UncertaintyWeightedLoss
 from mra_nn.model import build_model
 
 
@@ -36,11 +36,12 @@ def compute_refine_f1(
 
 def train_one_epoch(
     model: torch.nn.Module,
-    loss_fn: UncertaintyWeightedLoss,
+    loss_fn,
     loader: torch.utils.data.DataLoader,
     optimizer: torch.optim.Optimizer,
     scaler: torch.amp.GradScaler,
     device: torch.device,
+    single_task: bool = False,
 ) -> dict:
     """Train for one epoch. Returns dict of mean losses."""
     model.train()
@@ -58,17 +59,19 @@ def train_one_epoch(
                 batch["halo_rho0"], batch["halo_vnuc"],
                 batch["level"],
             )
-            total_loss, components = loss_fn(batch, rs, ld, ref)
+            if single_task:
+                total_loss, components = loss_fn(batch, rs)
+            else:
+                total_loss, components = loss_fn(batch, rs, ld, ref)
 
         scaler.scale(total_loss).backward()
         scaler.step(optimizer)
         scaler.update()
 
-        # Clamp log_sigma_rs so sigma_rho_s stays <= 1.
-        # Without this, sigma_rs -> inf and the rho_s gradient vanishes,
-        # causing the head to drift and produce MSE worse than baseline.
-        with torch.no_grad():
-            loss_fn.log_sigma_rs.clamp_(max=0.0)
+        if not single_task:
+            # Clamp log_sigma_rs so sigma_rho_s stays <= 1.
+            with torch.no_grad():
+                loss_fn.log_sigma_rs.clamp_(max=0.0)
 
         # Accumulate metrics
         for k, v in components.items():
@@ -82,11 +85,12 @@ def train_one_epoch(
 @torch.no_grad()
 def evaluate(
     model: torch.nn.Module,
-    loss_fn: UncertaintyWeightedLoss,
+    loss_fn,
     loader: torch.utils.data.DataLoader,
     device: torch.device,
+    single_task: bool = False,
 ) -> dict:
-    """Evaluate on val/test set. Returns dict of mean losses + refine F1 + positive-only rho_s MSE."""
+    """Evaluate on val/test set. Returns dict of mean losses + positive-only rho_s MSE."""
     model.eval()
     accum = {}
     n_batches = 0
@@ -104,15 +108,19 @@ def evaluate(
                 batch["halo_rho0"], batch["halo_vnuc"],
                 batch["level"],
             )
-            total_loss, components = loss_fn(batch, rs, ld, ref)
+            if single_task:
+                total_loss, components = loss_fn(batch, rs)
+            else:
+                total_loss, components = loss_fn(batch, rs, ld, ref)
 
         for k, v in components.items():
             accum[k] = accum.get(k, 0.0) + v.item()
         accum["total_loss"] = accum.get("total_loss", 0.0) + total_loss.item()
         n_batches += 1
 
-        all_ref_logits.append(ref.cpu())
-        all_ref_targets.append(batch["refine"].cpu())
+        if not single_task:
+            all_ref_logits.append(ref.cpu())
+            all_ref_targets.append(batch["refine"].cpu())
 
         # Accumulate positive (in-tree) samples for positive-only MSE
         pos_mask = (batch["negative"] == 0)
@@ -122,10 +130,11 @@ def evaluate(
 
     metrics = {k: v / n_batches for k, v in accum.items()}
 
-    # Refine F1
-    all_logits = torch.cat(all_ref_logits)
-    all_targets = torch.cat(all_ref_targets)
-    metrics["refine_f1"] = compute_refine_f1(all_logits, all_targets)
+    if not single_task:
+        # Refine F1
+        all_logits = torch.cat(all_ref_logits)
+        all_targets = torch.cat(all_ref_targets)
+        metrics["refine_f1"] = compute_refine_f1(all_logits, all_targets)
 
     # Positive-only rho_s MSE — the gate metric
     if pred_rs_pos:
@@ -179,16 +188,23 @@ def main():
 
     # Loss
     loss_cfg = cfg["loss"]
-    loss_fn = UncertaintyWeightedLoss(
-        focal_gamma=loss_cfg["focal_gamma"],
-        focal_alpha=loss_cfg["focal_alpha"],
-        pos_rho_weight=loss_cfg.get("pos_rho_weight", 10.0),
-    ).to(device)
+    single_task = cfg["model"].get("single_task", False)
+    if single_task:
+        loss_fn = SingleTaskLoss(
+            pos_rho_weight=loss_cfg.get("pos_rho_weight", 10.0),
+        ).to(device)
+    else:
+        loss_fn = UncertaintyWeightedLoss(
+            focal_gamma=loss_cfg["focal_gamma"],
+            focal_alpha=loss_cfg["focal_alpha"],
+            pos_rho_weight=loss_cfg.get("pos_rho_weight", 10.0),
+        ).to(device)
 
-    # Optimizer (includes loss_fn's learnable sigmas)
+    # Optimizer (includes loss_fn's learnable sigmas for multi-task)
     train_cfg = cfg["training"]
+    params = list(model.parameters()) + list(loss_fn.parameters())
     optimizer = torch.optim.AdamW(
-        list(model.parameters()) + list(loss_fn.parameters()),
+        params,
         lr=train_cfg["lr"],
         weight_decay=train_cfg["weight_decay"],
     )
@@ -221,15 +237,22 @@ def main():
 
     # CSV logger
     csv_path = ckpt_dir / "metrics.csv"
-    csv_fields = [
-        "epoch", "lr",
-        "train_total_loss", "train_loss_rho_s", "train_loss_log_dnorm",
-        "train_loss_refine", "train_sigma_rho_s", "train_sigma_log_dnorm",
-        "train_sigma_refine",
-        "val_total_loss", "val_loss_rho_s", "val_loss_log_dnorm",
-        "val_loss_refine", "val_sigma_rho_s", "val_sigma_log_dnorm",
-        "val_sigma_refine", "val_refine_f1", "val_pos_rho_s_mse",
-    ]
+    if single_task:
+        csv_fields = [
+            "epoch", "lr",
+            "train_total_loss", "train_loss_rho_s",
+            "val_total_loss", "val_loss_rho_s", "val_pos_rho_s_mse",
+        ]
+    else:
+        csv_fields = [
+            "epoch", "lr",
+            "train_total_loss", "train_loss_rho_s", "train_loss_log_dnorm",
+            "train_loss_refine", "train_sigma_rho_s", "train_sigma_log_dnorm",
+            "train_sigma_refine",
+            "val_total_loss", "val_loss_rho_s", "val_loss_log_dnorm",
+            "val_loss_refine", "val_sigma_rho_s", "val_sigma_log_dnorm",
+            "val_sigma_refine", "val_refine_f1", "val_pos_rho_s_mse",
+        ]
     csv_file = open(csv_path, "w", newline="")
     csv_writer = csv.DictWriter(csv_file, fieldnames=csv_fields)
     csv_writer.writeheader()
@@ -239,16 +262,22 @@ def main():
     patience_counter = 0
 
     print(f"\nTraining for up to {max_epochs} epochs (patience={train_cfg['patience']})...")
-    print(f"{'Epoch':>5} {'LR':>10} {'TrainLoss':>10} {'PosValMSE':>11} {'ValRefF1':>9} {'SigRs':>8} {'Best':>5}")
-    print("-" * 67)
+    if single_task:
+        print(f"{'Epoch':>5} {'LR':>10} {'TrainLoss':>10} {'PosValMSE':>11} {'Best':>5}")
+        print("-" * 50)
+    else:
+        print(f"{'Epoch':>5} {'LR':>10} {'TrainLoss':>10} {'PosValMSE':>11} {'ValRefF1':>9} {'SigRs':>8} {'Best':>5}")
+        print("-" * 67)
 
     for epoch in range(max_epochs):
         t0 = time.time()
 
         train_metrics = train_one_epoch(
-            model, loss_fn, train_dl, optimizer, scaler, device
+            model, loss_fn, train_dl, optimizer, scaler, device,
+            single_task=single_task,
         )
-        val_metrics = evaluate(model, loss_fn, val_dl, device)
+        val_metrics = evaluate(model, loss_fn, val_dl, device,
+                               single_task=single_task)
 
         current_lr = optimizer.param_groups[0]["lr"]
         scheduler.step()
@@ -268,36 +297,39 @@ def main():
         if is_best:
             best_val_rs_mse = val_metrics["pos_rho_s_mse"]
             patience_counter = 0
-            torch.save({
-                "epoch": epoch,
-                "model_state_dict": model.state_dict(),
-                "loss_fn_state_dict": loss_fn.state_dict(),
-                "optimizer_state_dict": optimizer.state_dict(),
-                "scheduler_state_dict": scheduler.state_dict(),
-                "best_val_rs_mse": best_val_rs_mse,
-                "config": cfg,
-            }, ckpt_dir / "best.pt")
         else:
             patience_counter += 1
 
-        # Always save last
-        torch.save({
+        ckpt_data = {
             "epoch": epoch,
             "model_state_dict": model.state_dict(),
-            "loss_fn_state_dict": loss_fn.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
             "scheduler_state_dict": scheduler.state_dict(),
             "best_val_rs_mse": best_val_rs_mse,
             "config": cfg,
-        }, ckpt_dir / "last.pt")
+        }
+        if not single_task:
+            ckpt_data["loss_fn_state_dict"] = loss_fn.state_dict()
+
+        if is_best:
+            torch.save(ckpt_data, ckpt_dir / "best.pt")
+
+        # Always save last
+        torch.save(ckpt_data, ckpt_dir / "last.pt")
 
         dt = time.time() - t0
         best_marker = "*" if is_best else ""
-        print(
-            f"{epoch:5d} {current_lr:10.2e} {train_metrics['total_loss']:10.4f} "
-            f"{val_metrics['pos_rho_s_mse']:11.3e} {val_metrics['refine_f1']:9.4f} "
-            f"{val_metrics['sigma_rho_s']:8.4f} {best_marker:>5}"
-        )
+        if single_task:
+            print(
+                f"{epoch:5d} {current_lr:10.2e} {train_metrics['total_loss']:10.4f} "
+                f"{val_metrics['pos_rho_s_mse']:11.3e} {best_marker:>5}"
+            )
+        else:
+            print(
+                f"{epoch:5d} {current_lr:10.2e} {train_metrics['total_loss']:10.4f} "
+                f"{val_metrics['pos_rho_s_mse']:11.3e} {val_metrics['refine_f1']:9.4f} "
+                f"{val_metrics['sigma_rho_s']:8.4f} {best_marker:>5}"
+            )
 
         # Early stopping
         if patience_counter >= train_cfg["patience"]:
