@@ -212,8 +212,9 @@ class MRANet(nn.Module):
         for film_layer in self.trunk:
             x = film_layer(x, level_emb)
 
-        # Output heads
-        rho_s = self.head_rho_s(x)  # [B, 512]
+        # Output heads — rho_s uses residual from rho0_s so the model only
+        # needs to learn the small correction (rho_s - rho0_s).
+        rho_s = self.head_rho_s(x) + rho0_s  # [B, 512]
         log_dnorm = self.head_log_dnorm(x).squeeze(-1)  # [B]
         refine_logit = self.head_refine(x).squeeze(-1)  # [B]
 
