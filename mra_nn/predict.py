@@ -1,10 +1,14 @@
 """Tree-walk inference for MRA-NN.
 
-Walks the MRA tree top-down. At each node:
-  - Extract features (rho0_s, vnuc_s, halos, level)
-  - Forward through the model -> (rho_s, log_dnorm, refine_prob)
-  - If refine_prob > threshold: mark as internal, enqueue children
-  - Else: mark as leaf with coefficients = rho_s (predicted directly)
+Two inference modes:
+
+**Multi-task** (refine head available):
+  Walk the tree top-down, using the refine_logit head to decide structure.
+
+**Single-task** (no refine head):
+  Copy rho0's tree topology, replace leaf s-coefficients with model
+  predictions.  After prediction, run compress->reconstruct to ensure
+  the two-scale relation is satisfied throughout the tree.
 
 Post-processing: scale all leaf coefficients so integral(rho) = N.
 
@@ -24,7 +28,7 @@ import yaml
 
 from pymra import FunctionTree, read_function, write_function
 from pymra.tree import Key, Node
-from pymra.twoscale import node_s, refine as twoscale_refine
+from pymra.twoscale import compress, node_s, reconstruct, refine as twoscale_refine
 
 from mra_nn.model import MRANet, build_model
 
@@ -126,6 +130,93 @@ def _ensure_children_exist(
     return children
 
 
+def _normalize_integral(tree: FunctionTree, n_electrons: int) -> None:
+    """Scale all leaf coefficients so integral(rho) = n_electrons."""
+    integral = tree.integral()
+    if abs(integral) > 1e-10:
+        scale = n_electrons / integral
+        for _, node in tree.leaves():
+            node.s = node.s * scale
+
+
+def _compress_reconstruct(tree: FunctionTree) -> FunctionTree:
+    """Run compress->reconstruct to enforce two-scale consistency."""
+    comp = compress(tree)
+    return reconstruct(comp)
+
+
+@torch.no_grad()
+def predict_density_simple(
+    model: MRANet,
+    rho0_path: str,
+    vnuc_path: str,
+    n_electrons: int,
+    device: torch.device,
+    batch_size: int = 4096,
+) -> FunctionTree:
+    """Predict density using rho0's tree topology (single-task mode).
+
+    Walks rho0's existing leaf set, replaces each leaf's s-coefficients
+    with the model's prediction, then runs compress->reconstruct to
+    enforce two-scale consistency.
+
+    Parameters
+    ----------
+    model : trained single-task MRANet
+    rho0_path : path to rho0.mad.h5
+    vnuc_path : path to vnuc.mad.h5
+    n_electrons : number of electrons (for integral normalization)
+    device : torch device
+    batch_size : number of leaves to process per forward pass
+
+    Returns
+    -------
+    FunctionTree with predicted density coefficients, integral-normalized.
+    """
+    model.eval()
+    rho0_tree = read_function(rho0_path)
+    vnuc_tree = read_function(vnuc_path)
+
+    k = rho0_tree.k
+    ndim = rho0_tree.ndim
+
+    # Collect rho0's leaf keys
+    leaf_keys = [key for key, _ in rho0_tree.leaves()]
+
+    # Build output tree with same internal structure as rho0
+    predicted_tree = FunctionTree(
+        k=k, ndim=ndim,
+        cell=rho0_tree.cell.copy(),
+        thresh=rho0_tree.thresh,
+        initial_level=rho0_tree.initial_level,
+    )
+    # Copy internal (non-leaf) nodes
+    for key, node in rho0_tree.nodes.items():
+        if not node.has_coeff:
+            predicted_tree.nodes[key] = Node(has_children=True)
+
+    # Predict in batches
+    for start in range(0, len(leaf_keys), batch_size):
+        batch_keys = leaf_keys[start : start + batch_size]
+        features = _extract_features(batch_keys, rho0_tree, vnuc_tree, device)
+        rho_s, _, _ = model(
+            features["rho0_s"], features["vnuc_s"],
+            features["halo_rho0"], features["halo_vnuc"],
+            features["level"],
+        )
+        rho_s_np = rho_s.cpu().numpy()
+        for i, key in enumerate(batch_keys):
+            predicted_tree.nodes[key] = Node(
+                s=rho_s_np[i].reshape((k,) * ndim).astype(np.float64)
+            )
+
+    # Compress->reconstruct for two-scale consistency
+    predicted_tree = _compress_reconstruct(predicted_tree)
+
+    _normalize_integral(predicted_tree, n_electrons)
+    return predicted_tree
+
+
 @torch.no_grad()
 def predict_density(
     model: MRANet,
@@ -136,11 +227,14 @@ def predict_density(
     refine_threshold: float = 0.5,
     max_level: int = 18,
 ) -> FunctionTree:
-    """Predict density via top-down tree walk.
+    """Predict density via top-down tree walk (multi-task mode).
+
+    Requires a model with a refine_logit head. For single-task models,
+    use predict_density_simple instead.
 
     Parameters
     ----------
-    model : trained MRANet
+    model : trained MRANet (multi-task, with refine head)
     rho0_path : path to rho0.mad.h5
     vnuc_path : path to vnuc.mad.h5
     n_electrons : number of electrons (for integral normalization)
@@ -201,13 +295,7 @@ def predict_density(
 
         current_level_keys = next_level_keys
 
-    # Post-processing: normalize integral to N_electrons
-    integral = predicted_tree.integral()
-    if abs(integral) > 1e-10:  # avoid division by zero
-        scale = n_electrons / integral
-        for _, node in predicted_tree.leaves():
-            node.s = node.s * scale
-
+    _normalize_integral(predicted_tree, n_electrons)
     return predicted_tree
 
 
@@ -230,15 +318,24 @@ def main():
     model = build_model(cfg).to(device)
     model.load_state_dict(ckpt["model_state_dict"])
 
+    single_task = cfg["model"].get("single_task", False)
     print(f"Loaded model from {args.checkpoint} (epoch {ckpt['epoch']})")
+    print(f"Mode: {'single-task' if single_task else 'multi-task'}")
     print(f"Predicting density for rho0={args.rho0}, vnuc={args.vnuc}")
 
-    tree = predict_density(
-        model, args.rho0, args.vnuc,
-        n_electrons=args.n_electrons,
-        device=device,
-        refine_threshold=args.refine_threshold,
-    )
+    if single_task:
+        tree = predict_density_simple(
+            model, args.rho0, args.vnuc,
+            n_electrons=args.n_electrons,
+            device=device,
+        )
+    else:
+        tree = predict_density(
+            model, args.rho0, args.vnuc,
+            n_electrons=args.n_electrons,
+            device=device,
+            refine_threshold=args.refine_threshold,
+        )
 
     n_leaves = sum(1 for _ in tree.leaves())
     integral = tree.integral()
