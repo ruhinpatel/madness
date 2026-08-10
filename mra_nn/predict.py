@@ -153,6 +153,7 @@ def predict_density_simple(
     n_electrons: int,
     device: torch.device,
     batch_size: int = 4096,
+    use_model_levels: set[int] | None = None,
 ) -> FunctionTree:
     """Predict density using rho0's tree topology (single-task mode).
 
@@ -168,6 +169,9 @@ def predict_density_simple(
     n_electrons : number of electrons (for integral normalization)
     device : torch device
     batch_size : number of leaves to process per forward pass
+    use_model_levels : set of tree levels at which to use the model prediction.
+        At all other levels, rho0's s-coefficients are used unchanged.
+        Default None means use the model at all levels (backward compatible).
 
     Returns
     -------
@@ -206,9 +210,15 @@ def predict_density_simple(
         )
         rho_s_np = rho_s.cpu().numpy()
         for i, key in enumerate(batch_keys):
-            predicted_tree.nodes[key] = Node(
-                s=rho_s_np[i].reshape((k,) * ndim).astype(np.float64)
-            )
+            if use_model_levels is not None and key.n not in use_model_levels:
+                # Outside effective range — use rho0 as-is
+                predicted_tree.nodes[key] = Node(
+                    s=node_s(rho0_tree, key).copy()
+                )
+            else:
+                predicted_tree.nodes[key] = Node(
+                    s=rho_s_np[i].reshape((k,) * ndim).astype(np.float64)
+                )
 
     # Compress->reconstruct for two-scale consistency
     predicted_tree = _compress_reconstruct(predicted_tree)
@@ -307,6 +317,11 @@ def main():
     parser.add_argument("--n-electrons", type=int, required=True)
     parser.add_argument("--out", required=True, help="Output .mad.h5 path")
     parser.add_argument("--refine-threshold", type=float, default=0.5)
+    parser.add_argument(
+        "--use-model-levels", type=str, default=None,
+        help="Comma-separated levels where model predictions are used (e.g. '10,11,12,13,14'). "
+             "At other levels, rho0 is used unchanged. Default: use model at all levels.",
+    )
     args = parser.parse_args()
 
     # Load checkpoint
@@ -323,11 +338,17 @@ def main():
     print(f"Mode: {'single-task' if single_task else 'multi-task'}")
     print(f"Predicting density for rho0={args.rho0}, vnuc={args.vnuc}")
 
+    use_model_levels = None
+    if args.use_model_levels:
+        use_model_levels = set(int(x) for x in args.use_model_levels.split(","))
+        print(f"Level clamping: using model at levels {sorted(use_model_levels)}, rho0 elsewhere")
+
     if single_task:
         tree = predict_density_simple(
             model, args.rho0, args.vnuc,
             n_electrons=args.n_electrons,
             device=device,
+            use_model_levels=use_model_levels,
         )
     else:
         tree = predict_density(
