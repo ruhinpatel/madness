@@ -1,0 +1,98 @@
+# MRA-NN Approach 2 — refine-focused multi-task config
+# Uses 51-molecule split from single_task.yaml with multi-task training enabled.
+# Gate metric: refine_f1 (not pos_rho_s_mse).
+
+data:
+  dataset_path: /gpfs/projects/rjh/ruhin/mra_nn/training_dataset.h5
+  raw_data_dir: /gpfs/projects/rjh/ruhin/mra_nn/training_data
+  train_molecules:
+    - h2o
+    - nh3
+    - ch4
+    - co2
+    - hf
+    - n2
+    - co
+    - hcn
+    - c2h4
+    - c2h6
+    - h2co
+    - hcl
+    - ch3oh
+    - ch3f
+    - f2
+    - cl2
+    - clf
+    - h2s
+    - cs2
+    - hnc
+    - hof
+    - hocl
+    - n2o
+    - ocs
+    - so3
+    - f2o
+    - cl2o
+    - clcn
+    - hno
+    - hcno
+    - hnco
+    - hocn
+    - hcof
+    - c-n2h2
+    - t-n2h2
+    - ch2f2
+    - cf4
+    - nh2cl
+    - n2h4
+    - ch3nh2
+    - ketene
+    - formic
+    - acetaldehyde
+    - allene
+    - oxirane
+  val_molecules:
+    - ethanol
+    - so2
+    - hnnn
+  test_molecules:
+    - h2o2
+    - c2h2
+    - glyoxal
+
+model:
+  k: 8
+  ndim: 3
+  k_cubed: 512
+  n_faces: 6
+  n_levels: 19
+  level_embed_dim: 32
+  face_embed_dim: 8
+  halo_encoder_hidden: 256
+  halo_encoder_out: 128
+  trunk_dims: [1024, 512, 256]
+  dropout: 0.1
+  single_task: false
+  use_parent_features: false
+
+training:
+  batch_size: 4096
+  max_epochs: 120
+  lr: 2.0e-4
+  min_lr: 1.0e-6
+  weight_decay: 1.0e-4
+  warmup_epochs: 5
+  patience: 20
+  num_workers: 4
+  seed: 42
+
+loss:
+  focal_gamma: 2.0
+  focal_alpha: 0.75
+  refine_pos_weight: 10.0
+  pos_rho_weight: 10.0
+
+refine_focused: true
+
+checkpoint:
+  dir: /gpfs/projects/rjh/ruhin/mra_nn/checkpoints

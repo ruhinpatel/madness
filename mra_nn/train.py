@@ -195,6 +195,7 @@ def main():
     # Loss
     loss_cfg = cfg["loss"]
     single_task = cfg["model"].get("single_task", False)
+    refine_focused = cfg.get("refine_focused", False)
     if single_task:
         # Compute per-level sample counts from training data for level masking
         level_counts = None
@@ -277,7 +278,10 @@ def main():
     csv_writer.writeheader()
 
     # Training loop
-    best_val_rs_mse = float("inf")
+    if refine_focused and not single_task:
+        best_gate_value = 0.0  # F1, higher is better
+    else:
+        best_gate_value = float("inf")  # MSE, lower is better
     patience_counter = 0
 
     print(f"\nTraining for up to {max_epochs} epochs (patience={train_cfg['patience']})...")
@@ -310,11 +314,16 @@ def main():
         csv_writer.writerow(row)
         csv_file.flush()
 
-        # Checkpointing — use positive-only val MSE (the gate metric) for best selection.
-        # All-sample val MSE saturates to ~0 by epoch 30 and can't distinguish further.
-        is_best = val_metrics["pos_rho_s_mse"] < best_val_rs_mse
+        # Checkpointing — gate metric depends on mode.
+        if refine_focused and not single_task:
+            current_gate = val_metrics.get("refine_f1", 0.0)
+            is_best = current_gate > best_gate_value
+        else:
+            current_gate = val_metrics["pos_rho_s_mse"]
+            is_best = current_gate < best_gate_value
+
         if is_best:
-            best_val_rs_mse = val_metrics["pos_rho_s_mse"]
+            best_gate_value = current_gate
             patience_counter = 0
         else:
             patience_counter += 1
@@ -324,7 +333,7 @@ def main():
             "model_state_dict": model.state_dict(),
             "optimizer_state_dict": optimizer.state_dict(),
             "scheduler_state_dict": scheduler.state_dict(),
-            "best_val_rs_mse": best_val_rs_mse,
+            "best_gate_value": best_gate_value,
             "config": cfg,
         }
         if not single_task:
@@ -359,12 +368,16 @@ def main():
 
     # Final summary
     print(f"\nTraining complete.")
-    print(f"  Best pos val rho_s MSE: {best_val_rs_mse:.3e}")
-    print(f"  Baseline (pos, rho0):   {baseline_mse:.3e}")
-    if best_val_rs_mse < baseline_mse:
-        print(f"  Model BEATS baseline by {(1 - best_val_rs_mse/baseline_mse)*100:.1f}%")
+    if refine_focused and not single_task:
+        print(f"  Best val refine F1: {best_gate_value:.4f}")
+        print(f"  Gate: {'PASS (F1 > 0.95)' if best_gate_value > 0.95 else 'FAIL'}")
     else:
-        print(f"  Model DOES NOT beat baseline")
+        print(f"  Best pos val rho_s MSE: {best_gate_value:.3e}")
+        print(f"  Baseline (pos, rho0):   {baseline_mse:.3e}")
+        if best_gate_value < baseline_mse:
+            print(f"  Model BEATS baseline by {(1 - best_gate_value/baseline_mse)*100:.1f}%")
+        else:
+            print(f"  Model DOES NOT beat baseline")
     print(f"  Checkpoints saved to: {ckpt_dir}")
 
 
