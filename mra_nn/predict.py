@@ -65,6 +65,7 @@ def _extract_features(
     rho0_tree: FunctionTree,
     vnuc_tree: FunctionTree,
     device: torch.device,
+    include_parent: bool = False,
 ) -> dict:
     """Extract model input features for a batch of keys."""
     k = rho0_tree.k
@@ -75,6 +76,8 @@ def _extract_features(
     halo_rho0_list = []
     halo_vnuc_list = []
     level_list = []
+    parent_rho0_list = []
+    parent_vnuc_list = []
 
     for key in keys:
         rho0_s_list.append(node_s(rho0_tree, key).ravel())
@@ -88,13 +91,30 @@ def _extract_features(
         halo_vnuc_list.append(h_vnuc)
         level_list.append(key.n)
 
-    return {
+        if include_parent:
+            if key.n > 0:
+                parent_key = key.parent()
+                parent_rho0_list.append(node_s(rho0_tree, parent_key).ravel())
+                parent_vnuc_list.append(node_s(vnuc_tree, parent_key).ravel())
+            else:
+                parent_rho0_list.append(np.zeros(k ** ndim, dtype=np.float64))
+                parent_vnuc_list.append(np.zeros(k ** ndim, dtype=np.float64))
+
+    result = {
         "rho0_s": torch.from_numpy(np.array(rho0_s_list, dtype=np.float32)).to(device),
         "vnuc_s": torch.from_numpy(np.array(vnuc_s_list, dtype=np.float32)).to(device),
         "halo_rho0": torch.from_numpy(np.array(halo_rho0_list, dtype=np.float32)).to(device),
         "halo_vnuc": torch.from_numpy(np.array(halo_vnuc_list, dtype=np.float32)).to(device),
         "level": torch.tensor(level_list, dtype=torch.long).to(device),
     }
+    if include_parent:
+        result["parent_rho0_s"] = torch.from_numpy(
+            np.array(parent_rho0_list, dtype=np.float32)
+        ).to(device)
+        result["parent_vnuc_s"] = torch.from_numpy(
+            np.array(parent_vnuc_list, dtype=np.float32)
+        ).to(device)
+    return result
 
 
 def _ensure_children_exist(
@@ -199,15 +219,24 @@ def predict_density_simple(
         if not node.has_coeff:
             predicted_tree.nodes[key] = Node(has_children=True)
 
+    # Detect if model uses parent features
+    use_parent = getattr(model, 'use_parent_features', False)
+
     # Predict in batches
     for start in range(0, len(leaf_keys), batch_size):
         batch_keys = leaf_keys[start : start + batch_size]
-        features = _extract_features(batch_keys, rho0_tree, vnuc_tree, device)
-        rho_s, _, _ = model(
+        features = _extract_features(
+            batch_keys, rho0_tree, vnuc_tree, device,
+            include_parent=use_parent,
+        )
+        forward_args = [
             features["rho0_s"], features["vnuc_s"],
             features["halo_rho0"], features["halo_vnuc"],
             features["level"],
-        )
+        ]
+        if use_parent:
+            forward_args.extend([features["parent_rho0_s"], features["parent_vnuc_s"]])
+        rho_s, _, _ = model(*forward_args)
         rho_s_np = rho_s.cpu().numpy()
         for i, key in enumerate(batch_keys):
             if use_model_levels is not None and key.n not in use_model_levels:

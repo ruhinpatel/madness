@@ -100,6 +100,8 @@ def process_molecule(mol_dir: Path) -> dict:
     level_list     = []
     l_trans_list   = []
     negative_list  = []
+    parent_rho0_s_list = []
+    parent_vnuc_s_list = []
 
     def _append(key: Key, rho_s: np.ndarray, log_d: float, refine: int, neg: int):
         rho0_s = node_s(rho0, key)
@@ -109,6 +111,15 @@ def process_molecule(mol_dir: Path) -> dict:
         h_vnuc     = np.stack([safe_node_s(vnuc, hk, k, ndim).ravel()
                                for hk in halo_keys(key)])
         rho_s_flat = rho_s.ravel()
+
+        # Parent features: Key(n-1, l//2). Zero-pad at level 0.
+        if key.n > 0:
+            parent_key = key.parent()
+            p_rho0 = node_s(rho0, parent_key).ravel()
+            p_vnuc = node_s(vnuc, parent_key).ravel()
+        else:
+            p_rho0 = np.zeros(k ** ndim, dtype=np.float64)
+            p_vnuc = np.zeros(k ** ndim, dtype=np.float64)
 
         rho0_s_list.append(rho0_s.ravel())
         vnuc_s_list.append(vnuc_s.ravel())
@@ -120,6 +131,8 @@ def process_molecule(mol_dir: Path) -> dict:
         level_list.append(key.n)
         l_trans_list.append(list(key.l))
         negative_list.append(neg)
+        parent_rho0_s_list.append(p_rho0)
+        parent_vnuc_s_list.append(p_vnuc)
 
     # --- positive samples: all nodes in the rho tree ---
     for key, node in rho.nodes.items():
@@ -151,6 +164,8 @@ def process_molecule(mol_dir: Path) -> dict:
         "level":     np.array(level_list,     dtype=np.int8),
         "l_trans":   np.array(l_trans_list,   dtype=np.int32),
         "negative":  np.array(negative_list,  dtype=np.int8),
+        "parent_rho0_s": np.array(parent_rho0_s_list, dtype=np.float32),
+        "parent_vnuc_s": np.array(parent_vnuc_s_list, dtype=np.float32),
     }
 
 

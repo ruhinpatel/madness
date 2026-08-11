@@ -54,11 +54,14 @@ def train_one_epoch(
         optimizer.zero_grad(set_to_none=True)
 
         with torch.amp.autocast("cuda", enabled=device.type == "cuda"):
-            rs, ld, ref = model(
+            forward_args = [
                 batch["rho0_s"], batch["vnuc_s"],
                 batch["halo_rho0"], batch["halo_vnuc"],
                 batch["level"],
-            )
+            ]
+            if "parent_rho0_s" in batch:
+                forward_args.extend([batch["parent_rho0_s"], batch["parent_vnuc_s"]])
+            rs, ld, ref = model(*forward_args)
             if single_task:
                 total_loss, components = loss_fn(batch, rs)
             else:
@@ -103,11 +106,14 @@ def evaluate(
         batch = {k: v.to(device, non_blocking=True) for k, v in batch.items()}
 
         with torch.amp.autocast("cuda", enabled=device.type == "cuda"):
-            rs, ld, ref = model(
+            forward_args = [
                 batch["rho0_s"], batch["vnuc_s"],
                 batch["halo_rho0"], batch["halo_vnuc"],
                 batch["level"],
-            )
+            ]
+            if "parent_rho0_s" in batch:
+                forward_args.extend([batch["parent_rho0_s"], batch["parent_vnuc_s"]])
+            rs, ld, ref = model(*forward_args)
             if single_task:
                 total_loss, components = loss_fn(batch, rs)
             else:
@@ -190,8 +196,21 @@ def main():
     loss_cfg = cfg["loss"]
     single_task = cfg["model"].get("single_task", False)
     if single_task:
+        # Compute per-level sample counts from training data for level masking
+        level_counts = None
+        min_level_samples = loss_cfg.get("min_level_samples", 0)
+        if min_level_samples > 0:
+            train_levels = train_dl.dataset.data["level"]
+            unique, counts = train_levels.unique(return_counts=True)
+            level_counts = {int(l): int(c) for l, c in zip(unique, counts)}
+            print(f"  Level masking: min_samples={min_level_samples}")
+            for lvl in sorted(level_counts):
+                status = "✓" if level_counts[lvl] >= min_level_samples else "✗ masked"
+                print(f"    level {lvl:2d}: {level_counts[lvl]:6d} samples {status}")
         loss_fn = SingleTaskLoss(
             pos_rho_weight=loss_cfg.get("pos_rho_weight", 10.0),
+            level_counts=level_counts,
+            min_level_samples=min_level_samples,
         ).to(device)
     else:
         loss_fn = UncertaintyWeightedLoss(

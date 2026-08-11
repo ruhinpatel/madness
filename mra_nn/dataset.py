@@ -27,6 +27,7 @@ class MRADataset(Dataset):
     FIELD_NAMES = [
         "rho0_s", "vnuc_s", "halo_rho0", "halo_vnuc",
         "rho_s", "log_dnorm", "refine", "level", "negative",
+        "parent_rho0_s", "parent_vnuc_s",
     ]
 
     def __init__(self, h5_path: str, molecules: List[str]) -> None:

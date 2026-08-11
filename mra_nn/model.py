@@ -137,8 +137,10 @@ class MRANet(nn.Module):
         trunk_dims: tuple = (1024, 512, 256),
         dropout: float = 0.1,
         single_task: bool = False,
+        use_parent_features: bool = False,
     ) -> None:
         super().__init__()
+        self.use_parent_features = use_parent_features
 
         # --- Halo encoder (shared across 6 faces) ---
         self.halo_encoder = HaloEncoder(
@@ -154,9 +156,11 @@ class MRANet(nn.Module):
 
         # --- Trunk MLP with FiLM conditioning ---
         # Input: halo_encoder output (6*128=768) + center features (2*512=1024)
+        #        + optional parent features (2*512=1024)
         center_dim = 2 * k_cubed  # rho0_s + vnuc_s
+        parent_dim = 2 * k_cubed if use_parent_features else 0
         halo_out_dim = n_faces * halo_encoder_out
-        trunk_input_dim = halo_out_dim + center_dim  # 768 + 1024 = 1792
+        trunk_input_dim = halo_out_dim + center_dim + parent_dim
 
         trunk_layers = []
         in_dim = trunk_input_dim
@@ -183,15 +187,19 @@ class MRANet(nn.Module):
         halo_rho0: torch.Tensor,
         halo_vnuc: torch.Tensor,
         level: torch.Tensor,
+        parent_rho0_s: torch.Tensor | None = None,
+        parent_vnuc_s: torch.Tensor | None = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Parameters
         ----------
-        rho0_s    : [B, k^3]
-        vnuc_s    : [B, k^3]
-        halo_rho0 : [B, 6, k^3]
-        halo_vnuc : [B, 6, k^3]
-        level     : [B] (long)
+        rho0_s         : [B, k^3]
+        vnuc_s         : [B, k^3]
+        halo_rho0      : [B, 6, k^3]
+        halo_vnuc      : [B, 6, k^3]
+        level          : [B] (long)
+        parent_rho0_s  : [B, k^3] or None (required if use_parent_features=True)
+        parent_vnuc_s  : [B, k^3] or None (required if use_parent_features=True)
 
         Returns
         -------
@@ -209,7 +217,11 @@ class MRANet(nn.Module):
         level_emb = self.level_embedding(level)  # [B, 32]
 
         # Trunk input
-        x = torch.cat([halo_emb, center], dim=-1)  # [B, 1792]
+        if self.use_parent_features:
+            parent = torch.cat([parent_rho0_s, parent_vnuc_s], dim=-1)  # [B, 1024]
+            x = torch.cat([halo_emb, center, parent], dim=-1)  # [B, 2816]
+        else:
+            x = torch.cat([halo_emb, center], dim=-1)  # [B, 1792]
 
         # FiLM-conditioned trunk
         for film_layer in self.trunk:
@@ -240,4 +252,5 @@ def build_model(cfg: dict) -> MRANet:
         trunk_dims=tuple(m["trunk_dims"]),
         dropout=m["dropout"],
         single_task=m.get("single_task", False),
+        use_parent_features=m.get("use_parent_features", False),
     )

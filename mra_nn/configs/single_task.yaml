@@ -1,11 +1,12 @@
-# MRA-NN single-task ablation config
-# Tests whether multi-task interference prevents rho_s learning.
-# See: docs/superpowers/specs/2026-07-31-mra-nn-single-task-ablation-design.md
+# MRA-NN single-task config — Option A (51 molecules + level masking)
+# Prior: 13-train single-task ablation reached 1.28x train, 1.00x val.
+# Goal: more data at underrepresented levels + level-aware loss masking.
 
 data:
   dataset_path: /gpfs/projects/rjh/ruhin/mra_nn/training_dataset.h5
   raw_data_dir: /gpfs/projects/rjh/ruhin/mra_nn/training_data
   train_molecules:
+    # Original 13 training molecules
     - h2o
     - nh3
     - ch4
@@ -19,11 +20,48 @@ data:
     - h2co
     - hcl
     - ch3oh
-  val_molecules:
+    # Former val/test (now training)
     - ch3f
+    # New Option A molecules (35 total, 3 held out for val/test)
+    - f2
+    - cl2
+    - clf
+    - h2s
+    - cs2
+    - hnc
+    - hof
+    - hocl
+    - n2o
+    - ocs
+    - so3
+    - f2o
+    - cl2o
+    - clcn
+    - hno
+    - hcno
+    - hnco
+    - hocn
+    - hcof
+    - c-n2h2
+    - t-n2h2
+    - ch2f2
+    - cf4
+    - nh2cl
+    - n2h4
+    - ch3nh2
+    - ketene
+    - formic
+    - acetaldehyde
+    - allene
+    - oxirane
+  val_molecules:
+    - ethanol
+    - so2
+    - hnnn
   test_molecules:
     - h2o2
     - c2h2
+    - glyoxal
 
 model:
   k: 8
@@ -38,6 +76,7 @@ model:
   trunk_dims: [1024, 512, 256]
   dropout: 0.1
   single_task: true
+  use_parent_features: true
 
 training:
   batch_size: 4096
@@ -53,6 +92,7 @@ training:
 loss:
   pos_rho_weight: 10.0
   refine_pos_weight: 10.0
+  min_level_samples: 200
 
 checkpoint:
   dir: /gpfs/projects/rjh/ruhin/mra_nn/checkpoints
