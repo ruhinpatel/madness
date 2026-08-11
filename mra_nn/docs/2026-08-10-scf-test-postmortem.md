@@ -285,3 +285,31 @@ After Option A (or A+B), re-run the SCF convergence test:
 - **Why it failed:** The parent's rho0/vnuc s-coefficients are smooth, low-information signals at coarse levels. The density correction (rho - rho0) is what matters, but we can't provide the parent's correction because that's what we're trying to predict. The parent rho0/vnuc contain the same information the model already gets from its own rho0/vnuc at the child level — just at coarser resolution. No new signal was added.
 - **Decision gate triggered:** "If levels 1-7 still at parity after parent features, the correction requires context beyond one parent." Options: message-passing GNN on the tree, tree structure prediction pivot (Approach C), or fundamental rethinking of what information the model needs.
 - **Verdict:** Failed. Concatenating parent features is not sufficient for cross-level context.
+
+### Decision 23: Post-Option-B Direction — Approach 3 then Approach 2
+- **When:** 2026-08-11
+- **What:** Instead of GNN message-passing (high effort, uncertain payoff), pursue two pragmatic directions:
+  - **Approach 3 (first):** Investigate why fine-level improvement (0.41-0.98x at levels 10-14) doesn't reduce SCF iterations. Test with tighter protocol, different molecules, analyze what actually drives SCF iteration count.
+  - **Approach 2 (second):** Pivot to tree structure prediction — binary refinement classification instead of density coefficient regression. Fundamentally easier ML problem.
+- **Why:** GNN rejected because the input signal problem (rho0/vnuc don't contain enough info for coarse corrections) may be unfixable regardless of architecture. Approach 3 is low-effort and might reveal practical wins. Approach 2 changes the ML role entirely.
+- **Verdict:** Approach 3 complete (Decision 24). Approach 2 is next.
+
+### Decision 24: Approach 3 Result — Fine-Level Density Improvements Have Zero SCF Value
+- **When:** 2026-08-11 (job 2116941, 2h run)
+- **What:** Multi-molecule SCF test: 7 molecules (ch3oh, ethanol, so2, hnnn, h2o2, c2h2, glyoxal) × 2 thresholds (1e-6, 1e-8) = 14 comparisons. Level-clamped model (levels 10-14 only) vs baseline rho0.
+- **Result:** 14/14 comparisons show **identical iteration counts**. Zero SCF iteration reduction in any scenario.
+
+  | Molecule | 1e-6 | 1e-8 |
+  |----------|------|------|
+  | ch3oh (18e) | 12=12 | 12=12 |
+  | ethanol (26e) | 12=12 | 12=12 |
+  | so2 (32e) | 14=14 | 14=14 |
+  | hnnn (22e) | 13=13 | 13=13 |
+  | h2o2 (18e) | 12=12 | 12=12 |
+  | c2h2 (14e) | 10=10 | 10=10 |
+  | glyoxal (30e) | 13=13 | 13=13 |
+
+- **Why:** SCF convergence is entirely determined by coarse-level (1-9) density quality. The model's fine-level wins at levels 10-14 are irrelevant — those nodes carry detail that the SCF solver projects away in the first protocol step (thresh=1e-4). Tighter thresholds (1e-8) don't help because the additional refinement at finer levels doesn't change the coarse-level convergence path.
+- **Conclusion:** Density coefficient prediction at fine levels is a solved but useless problem for SCF acceleration. The density prediction approach can only help if coarse-level predictions improve, which requires a fundamentally different input signal — not available from rho0/vnuc alone. This closes the density-prediction line of investigation for SCF initial guess.
+- **Next:** Approach 2 — pivot ML role from density prediction to tree structure prediction (binary refinement classification). Change what the model predicts, not how well it predicts density.
+- **Verdict:** Approach 3 closed. Density prediction approach exhausted for SCF acceleration.
