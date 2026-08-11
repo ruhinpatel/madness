@@ -277,3 +277,11 @@ After Option A (or A+B), re-run the SCF convergence test:
 - **When:** 2026-08-10
 - **What:** Parent features are extracted from rho0 and vnuc trees only. Not from the converged density (rho) tree.
 - **Why:** At inference time, only rho0 and vnuc are available — rho is what we're trying to predict. Including rho parent features in training would create a data leak.
+
+### Decision 22: Option B Training Result — Parent Features Had No Effect
+- **When:** 2026-08-11 (job 2116889, checkpoint 2026-08-10_23-13)
+- **What:** Trained 4.09M param model with parent rho0/vnuc s-coefficients concatenated to trunk input (2816-dim). 120 epochs on A100, best val MSE 1.023e-04 at epoch 107.
+- **Result:** Per-level breakdown is identical to Option A. Levels 1-9 remain at parity (1.00-1.12x). Levels 10-14 unchanged (0.41-0.98x). The model learned to ignore the parent features entirely.
+- **Why it failed:** The parent's rho0/vnuc s-coefficients are smooth, low-information signals at coarse levels. The density correction (rho - rho0) is what matters, but we can't provide the parent's correction because that's what we're trying to predict. The parent rho0/vnuc contain the same information the model already gets from its own rho0/vnuc at the child level — just at coarser resolution. No new signal was added.
+- **Decision gate triggered:** "If levels 1-7 still at parity after parent features, the correction requires context beyond one parent." Options: message-passing GNN on the tree, tree structure prediction pivot (Approach C), or fundamental rethinking of what information the model needs.
+- **Verdict:** Failed. Concatenating parent features is not sufficient for cross-level context.
