@@ -10,7 +10,7 @@
 
 export PATH="/cm/shared/apps/slurm/21.08.8/bin:$PATH"
 source /gpfs/projects/rjh/ruhin/mra_nn/.venv/bin/activate
-export PYTHONPATH=/gpfs/projects/rjh/adrian/pymra/src:${PYTHONPATH:-}
+export PYTHONPATH=/gpfs/projects/rjh/ruhin/madness-ruhin:/gpfs/projects/rjh/adrian/pymra/src:${PYTHONPATH:-}
 
 cd /gpfs/projects/rjh/ruhin/madness-ruhin
 
