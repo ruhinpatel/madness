@@ -313,3 +313,19 @@ After Option A (or A+B), re-run the SCF convergence test:
 - **Conclusion:** Density coefficient prediction at fine levels is a solved but useless problem for SCF acceleration. The density prediction approach can only help if coarse-level predictions improve, which requires a fundamentally different input signal — not available from rho0/vnuc alone. This closes the density-prediction line of investigation for SCF initial guess.
 - **Next:** Approach 2 — pivot ML role from density prediction to tree structure prediction (binary refinement classification). Change what the model predicts, not how well it predicts density.
 - **Verdict:** Approach 3 closed. Density prediction approach exhausted for SCF acceleration.
+
+### Decision 25: Approach 2 — Pivot to Tree Structure Prediction (Refinement Classification)
+- **When:** 2026-08-11
+- **What:** Change the ML role from density coefficient prediction (regression) to tree refinement prediction (binary classification). The model predicts whether each node needs refinement (has children) or is a leaf.
+- **Goal:** Accelerate per-iteration compute, not reduce iteration count. During each SCF iteration, MADNESS walks every leaf and computes wavelet norms to decide refinement. A model that accurately predicts refinement decisions can skip expensive wavelet-norm computations for confident leaf predictions, and pre-refine nodes predicted as needing children.
+- **Why this instead of (A) better SCF guess via tree structure:**
+  - Approach 3 proved fine-level changes have zero SCF iteration impact (14/14 tests)
+  - Tree structure differences between rho0 and rho are mostly at fine levels — same dead end
+  - (B) attacks per-iteration cost, a different mechanism than iteration count
+- **Why this is tractable:**
+  - Binary classification is fundamentally easier than 512-coefficient regression
+  - The model already beats baseline at fine levels (0.41-0.98x) — exactly where refinement decisions happen
+  - Coarse-level refinement is trivial to predict (almost always "refine")
+  - All infrastructure exists: `head_refine` in model, `refine` labels in dataset, tree-walk in predict.py
+- **Success criteria:** Per-level refinement accuracy > 95% at the decision boundary (levels 8-14). Measurable wall-clock reduction in MADNESS refinement step when using ML predictions.
+- **Verdict:** Pending design and implementation.
