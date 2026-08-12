@@ -1,5 +1,5 @@
 #!/bin/bash
-# Generate MRA-NN training data (rho0, vnuc, rho) for 51 molecules.
+# Generate MRA-NN training data for 35 NEW Option A molecules only.
 #
 # Step A (no SCF): dump_training_functions --input=mol.in
 #   → rho0.mad.h5, vnuc.mad.h5
@@ -14,12 +14,12 @@
 #   cd /gpfs/projects/rjh/ruhin/mra_nn
 #   sbatch gen_training_data.sh
 
-#SBATCH --job-name=mra_nn_data
+#SBATCH --job-name=mra_nn_new
 #SBATCH --partition=long-40core
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=40
-#SBATCH --time=12:00:00
+#SBATCH --time=36:00:00
 #SBATCH --output=/gpfs/projects/rjh/ruhin/mra_nn/logs/gen_training_data_%j.out
 #SBATCH --error=/gpfs/projects/rjh/ruhin/mra_nn/logs/gen_training_data_%j.err
 
@@ -42,9 +42,6 @@ DUMP=$BUILD/src/apps/molresponse/dump_training_functions
 MOLS_DIR=/gpfs/projects/rjh/ruhin/mra_nn/molecules
 DATA_DIR=/gpfs/projects/rjh/ruhin/mra_nn/training_data
 MOLECULES=(
-    # Original 16
-    h2o nh3 ch4 co2 hf n2 co hcn c2h2 c2h4 c2h6 h2co ch3oh h2o2 hcl ch3f
-    # New 35 (Option A expansion)
     f2 cl2 clf h2s cs2 hnc hof hocl n2o ocs
     so2 so3 f2o cl2o clcn hno hcno hnco hnnn hocn
     hcof c-n2h2 t-n2h2 ch2f2 cf4 nh2cl n2h4 ch3nh2

@@ -3,7 +3,7 @@
 #SBATCH --partition=long-40core
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --mem=64G
+#SBATCH --mem=40G
 #SBATCH --time=06:00:00
 #SBATCH --output=/gpfs/projects/rjh/ruhin/mra_nn/logs/rebuild_b_%j.out
 #SBATCH --error=/gpfs/projects/rjh/ruhin/mra_nn/logs/rebuild_b_%j.err

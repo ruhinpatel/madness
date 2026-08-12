@@ -17,7 +17,7 @@ import torch
 import yaml
 
 from mra_nn.dataset import MRADataset, build_dataloaders, compute_baseline_mse
-from mra_nn.losses import SingleTaskLoss, UncertaintyWeightedLoss
+from mra_nn.losses import RefineOnlyLoss, SingleTaskLoss, UncertaintyWeightedLoss
 from mra_nn.model import build_model
 
 
@@ -42,6 +42,7 @@ def train_one_epoch(
     scaler: torch.amp.GradScaler,
     device: torch.device,
     single_task: bool = False,
+    refine_only: bool = False,
 ) -> dict:
     """Train for one epoch. Returns dict of mean losses."""
     model.train()
@@ -64,6 +65,8 @@ def train_one_epoch(
             rs, ld, ref = model(*forward_args)
             if single_task:
                 total_loss, components = loss_fn(batch, rs)
+            elif refine_only:
+                total_loss, components = loss_fn(batch, ref)
             else:
                 total_loss, components = loss_fn(batch, rs, ld, ref)
 
@@ -71,7 +74,7 @@ def train_one_epoch(
         scaler.step(optimizer)
         scaler.update()
 
-        if not single_task:
+        if not single_task and not refine_only:
             # Clamp log_sigma_rs so sigma_rho_s stays <= 1.
             with torch.no_grad():
                 loss_fn.log_sigma_rs.clamp_(max=0.0)
@@ -92,6 +95,7 @@ def evaluate(
     loader: torch.utils.data.DataLoader,
     device: torch.device,
     single_task: bool = False,
+    refine_only: bool = False,
 ) -> dict:
     """Evaluate on val/test set. Returns dict of mean losses + positive-only rho_s MSE."""
     model.eval()
@@ -116,6 +120,8 @@ def evaluate(
             rs, ld, ref = model(*forward_args)
             if single_task:
                 total_loss, components = loss_fn(batch, rs)
+            elif refine_only:
+                total_loss, components = loss_fn(batch, ref)
             else:
                 total_loss, components = loss_fn(batch, rs, ld, ref)
 
@@ -196,7 +202,13 @@ def main():
     loss_cfg = cfg["loss"]
     single_task = cfg["model"].get("single_task", False)
     refine_focused = cfg.get("refine_focused", False)
-    if single_task:
+    refine_only = cfg.get("refine_only", False)
+    if refine_only:
+        loss_fn = RefineOnlyLoss(
+            focal_gamma=loss_cfg["focal_gamma"],
+            focal_alpha=loss_cfg["focal_alpha"],
+        ).to(device)
+    elif single_task:
         # Compute per-level sample counts from training data for level masking
         level_counts = None
         min_level_samples = loss_cfg.get("min_level_samples", 0)
@@ -257,7 +269,13 @@ def main():
 
     # CSV logger
     csv_path = ckpt_dir / "metrics.csv"
-    if single_task:
+    if refine_only:
+        csv_fields = [
+            "epoch", "lr",
+            "train_total_loss", "train_loss_refine",
+            "val_total_loss", "val_loss_refine", "val_refine_f1",
+        ]
+    elif single_task:
         csv_fields = [
             "epoch", "lr",
             "train_total_loss", "train_loss_rho_s",
@@ -278,14 +296,18 @@ def main():
     csv_writer.writeheader()
 
     # Training loop
-    if refine_focused and not single_task:
+    use_f1_gate = refine_only or (refine_focused and not single_task)
+    if use_f1_gate:
         best_gate_value = 0.0  # F1, higher is better
     else:
         best_gate_value = float("inf")  # MSE, lower is better
     patience_counter = 0
 
     print(f"\nTraining for up to {max_epochs} epochs (patience={train_cfg['patience']})...")
-    if single_task:
+    if refine_only:
+        print(f"{'Epoch':>5} {'LR':>10} {'TrainLoss':>10} {'ValRefF1':>9} {'Best':>5}")
+        print("-" * 45)
+    elif single_task:
         print(f"{'Epoch':>5} {'LR':>10} {'TrainLoss':>10} {'PosValMSE':>11} {'Best':>5}")
         print("-" * 50)
     else:
@@ -297,10 +319,10 @@ def main():
 
         train_metrics = train_one_epoch(
             model, loss_fn, train_dl, optimizer, scaler, device,
-            single_task=single_task,
+            single_task=single_task, refine_only=refine_only,
         )
         val_metrics = evaluate(model, loss_fn, val_dl, device,
-                               single_task=single_task)
+                               single_task=single_task, refine_only=refine_only)
 
         current_lr = optimizer.param_groups[0]["lr"]
         scheduler.step()
@@ -315,7 +337,7 @@ def main():
         csv_file.flush()
 
         # Checkpointing — gate metric depends on mode.
-        if refine_focused and not single_task:
+        if use_f1_gate:
             current_gate = val_metrics.get("refine_f1", 0.0)
             is_best = current_gate > best_gate_value
         else:
@@ -336,7 +358,7 @@ def main():
             "best_gate_value": best_gate_value,
             "config": cfg,
         }
-        if not single_task:
+        if not single_task and not refine_only:
             ckpt_data["loss_fn_state_dict"] = loss_fn.state_dict()
 
         if is_best:
@@ -347,7 +369,12 @@ def main():
 
         dt = time.time() - t0
         best_marker = "*" if is_best else ""
-        if single_task:
+        if refine_only:
+            print(
+                f"{epoch:5d} {current_lr:10.2e} {train_metrics['total_loss']:10.4f} "
+                f"{val_metrics['refine_f1']:9.4f} {best_marker:>5}"
+            )
+        elif single_task:
             print(
                 f"{epoch:5d} {current_lr:10.2e} {train_metrics['total_loss']:10.4f} "
                 f"{val_metrics['pos_rho_s_mse']:11.3e} {best_marker:>5}"
@@ -368,7 +395,7 @@ def main():
 
     # Final summary
     print(f"\nTraining complete.")
-    if refine_focused and not single_task:
+    if use_f1_gate:
         print(f"  Best val refine F1: {best_gate_value:.4f}")
         print(f"  Gate: {'PASS (F1 > 0.95)' if best_gate_value > 0.95 else 'FAIL'}")
     else:

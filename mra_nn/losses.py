@@ -53,6 +53,25 @@ class FocalLoss(nn.Module):
         return (alpha_weight * focal_weight * bce).mean()
 
 
+class RefineOnlyLoss(nn.Module):
+    """Pure refinement classification loss — focal loss on the refine head only.
+
+    No density or log_dnorm heads. No learnable parameters.
+    """
+
+    def __init__(self, focal_gamma: float = 2.0, focal_alpha: float = 0.75) -> None:
+        super().__init__()
+        self.focal_loss = FocalLoss(gamma=focal_gamma, alpha=focal_alpha)
+
+    def forward(
+        self,
+        batch: Dict[str, torch.Tensor],
+        pred_refine_logit: torch.Tensor,
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        loss = self.focal_loss(pred_refine_logit, batch["refine"])
+        return loss, {"loss_refine": loss.detach()}
+
+
 class UncertaintyWeightedLoss(nn.Module):
     """Uncertainty-weighted multi-task loss (Kendall et al. 2018).
 
@@ -139,11 +158,35 @@ class SingleTaskLoss(nn.Module):
 
     No learnable parameters. Positive (in-tree) samples weighted higher
     to counteract the 87% negative imbalance in the dataset.
+
+    Optional level-aware masking:
+    - Hard cutoff: levels with fewer than `min_level_samples` training
+      samples get zero gradient (masked out entirely).
+    - Soft weighting: remaining levels are weighted by
+      sqrt(count / max_count), so data-moderate levels contribute
+      proportionally less than data-rich levels.
     """
 
-    def __init__(self, pos_rho_weight: float = 10.0) -> None:
+    def __init__(
+        self,
+        pos_rho_weight: float = 10.0,
+        level_counts: Dict[int, int] | None = None,
+        min_level_samples: int = 200,
+    ) -> None:
         super().__init__()
         self.pos_rho_weight = pos_rho_weight
+        # Build level weight lookup (register as buffer so it moves with .to())
+        if level_counts is not None:
+            max_level = max(level_counts.keys())
+            max_count = max(level_counts.values())
+            weights = torch.zeros(max_level + 1)
+            for lvl, cnt in level_counts.items():
+                if cnt >= min_level_samples:
+                    weights[lvl] = (cnt / max_count) ** 0.5
+                # else: stays 0.0 (hard mask)
+            self.register_buffer("level_weights", weights)
+        else:
+            self.level_weights = None
 
     def forward(
         self,
@@ -153,7 +196,7 @@ class SingleTaskLoss(nn.Module):
         """
         Parameters
         ----------
-        batch : dict with keys rho_s, negative
+        batch : dict with keys rho_s, negative, level
         pred_rho_s : [B, 512]
 
         Returns
@@ -163,6 +206,14 @@ class SingleTaskLoss(nn.Module):
         """
         is_pos = (batch["negative"] == 0).float()
         sample_w = 1.0 + (self.pos_rho_weight - 1.0) * is_pos
+
+        # Apply level masking if configured
+        if self.level_weights is not None:
+            levels = batch["level"].long()
+            # Clamp to valid range (shouldn't be needed, but safe)
+            levels = levels.clamp(0, self.level_weights.shape[0] - 1)
+            sample_w = sample_w * self.level_weights[levels]
+
         per_sample_mse = F.mse_loss(
             pred_rho_s, batch["rho_s"], reduction="none"
         ).mean(dim=-1)

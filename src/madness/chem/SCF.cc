@@ -41,6 +41,7 @@
 #include <madness.h>
 #include <madness/chem/SCF.h>
 #include <madchem.h>
+#include <fstream>
 
 #if defined(__has_include)
 #  if __has_include(<filesystem>)
@@ -1028,7 +1029,27 @@ void SCF::initial_guess(World& world) {
     if (world.rank() == 0 and param.print_level() > 3)
         print("guess dens trace", nel);
     END_TIMER(world, "guess density");
-    rho.scale(std::round(nel) / nel);
+    const double target_nel = std::round(nel);
+    rho.scale(target_nel / nel);
+
+    // Override initial density with ML prediction if rhoML archive is present.
+    // Use h5_to_archive to convert rhoML.mad.h5 → rhoML before running moldft.
+    {
+        const std::string rhoml_archive = "rhoML";
+        std::ifstream probe(rhoml_archive + ".00000");
+        if (probe.good()) {
+            probe.close();
+            if (world.rank() == 0)
+                print("\n  Loading ML-predicted density from archive", rhoml_archive);
+            archive::ParallelInputArchive<archive::BinaryFstreamInputArchive>
+                ar(world, rhoml_archive.c_str());
+            ar & rho;
+            double nel_ml = rho.trace();
+            if (world.rank() == 0)
+                print("  ML density trace", nel_ml, "-> rescaling to", target_nel);
+            rho.scale(target_nel / nel_ml);
+        }
+    }
 
     if (world.size() > 1) {
         START_TIMER(world);

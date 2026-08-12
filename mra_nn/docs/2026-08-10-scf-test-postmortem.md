@@ -328,4 +328,13 @@ After Option A (or A+B), re-run the SCF convergence test:
   - Coarse-level refinement is trivial to predict (almost always "refine")
   - All infrastructure exists: `head_refine` in model, `refine` labels in dataset, tree-walk in predict.py
 - **Success criteria:** Per-level refinement accuracy > 95% at the decision boundary (levels 8-14). Measurable wall-clock reduction in MADNESS refinement step when using ML predictions.
-- **Verdict:** Pending design and implementation.
+- **Verdict:** Partially failed — see Decision 26.
+
+### Decision 26: Approach 2 First Attempt — Multi-Task Interference Repeated
+- **When:** 2026-08-11 (job 2116969, checkpoint 2026-08-11_11-49)
+- **What:** Trained with `refine_focused=true` config. Best val refine F1: 0.8568. Gate FAIL (need 0.95). SCF tree-walk (job 2116970): 31 iterations vs baseline 12 — worse.
+- **Root cause:** `refine_focused=true` only changed the checkpoint gate metric, NOT the loss function. The model still used `UncertaintyWeightedLoss` with all three heads (rho_s + log_dnorm + refine). Training log showed sigma_rho_s shrinking from 0.99 → 0.075, meaning the optimizer upweighted density regression ~89× and starved the refine head of gradient. Same multi-task interference pattern as Decision 7/12/15.
+- **Lesson:** Config flag names can lie. The flag looked like it changed the training objective but only changed the checkpoint metric. Should have been caught by tracing the code path before submitting. Verification rule added to `mra_nn/CLAUDE.md`.
+- **Fix:** Created `RefineOnlyLoss` in `losses.py` — pure focal loss on refine logit, zero contribution from rho_s/log_dnorm. New `refine_only: true` mode in `train.py` and `configs/refine_only.yaml`.
+- **Next:** Job 2117581 (mra-rfo) submitted — refine-only training. If F1 > 0.95, run SCF tree-walk test. If F1 < 0.95, the bottleneck is architectural, not multi-task interference.
+- **Verdict:** Pending job 2117581 results.
