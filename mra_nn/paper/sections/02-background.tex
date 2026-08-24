@@ -1,0 +1,29 @@
+\section{Background}\label{sec:background}
+
+\subsection{Multiresolution Analysis in MADNESS}\label{sec:mra}
+
+MADNESS~\cite{harrison2016madness} represents three-dimensional functions in a discontinuous multiwavelet basis built on an adaptive octree.
+The simulation cell $[0,1)^3$ is recursively bisected along each axis to produce cubic boxes at integer levels $n = 0, 1, 2, \ldots$, with each box at level $n$ identified by a translation index $\mathbf{l} \in \{0, \ldots, 2^n - 1\}^3$.
+Within each box, the function is expanded in a tensor product of Legendre scaling polynomials of order $k$ (we use $k = 8$ throughout), giving $k^3 = 512$ scaling coefficients (s-coefficients) per node.
+
+The connection between consecutive levels is mediated by Alpert's two-scale relation~\cite{alpert1993twoscale}.
+A parent node's s-coefficients can be decomposed into the s-coefficients of its eight children plus a set of wavelet difference coefficients (d-coefficients) that encode the detail lost in the coarsening.
+Refinement is controlled by the d-coefficient norm: if $\|\mathbf{d}\| > \epsilon$ for a prescribed threshold $\epsilon$, the node is subdivided into eight children and the representation is extended to the next level.
+Nodes whose d-coefficients fall below $\epsilon$ become leaves.
+This adaptive refinement concentrates computational effort near nuclei and in bonding regions while keeping the representation coarse in smooth, slowly varying parts of space.
+
+\subsection{SCF Iteration Mechanics}\label{sec:scf}
+
+Kohn-Sham DFT~\cite{kohn1965self} reduces the many-electron problem to a set of single-particle eigenvalue equations in which the effective potential depends on the electron density $\rho(\mathbf{r})$.
+Because the potential is a functional of $\rho$, the equations must be solved self-consistently: an initial density defines a potential, the eigenvalue equations are solved for new orbitals, a new density is constructed, and the cycle repeats until $\rho$ changes by less than a convergence threshold.
+
+MADNESS uses the promolecular density $\rho_0(\mathbf{r}) = \sum_A \rho_A^\mathrm{atom}(\mathbf{r})$ as its initial guess, where $\rho_A^\mathrm{atom}$ is the spherically symmetric ground-state density of isolated atom $A$.
+This superposition is inexpensive to construct and places charge in roughly the right spatial regions, but it contains no information about chemical bonding, charge redistribution, or exchange-correlation effects.
+The distance between $\rho_0$ and the converged $\rho$ determines how many SCF iterations are needed.
+
+MADNESS employs a multi-protocol convergence strategy~\cite{harrison2016madness}.
+The calculation begins at a coarse truncation threshold (typically $\epsilon = 10^{-4}$), producing a shallow tree with fewer nodes.
+Once the density converges at this threshold, the tree is refined to a tighter threshold ($\epsilon = 10^{-6}$ or beyond) and iteration continues.
+The first (coarsest) protocol dominates the total iteration count because it starts from $\rho_0$, the density furthest from the converged solution.
+Subsequent protocols start from an already-converged density at the previous threshold and typically converge in one or two iterations.
+Any ML model that aims to reduce SCF cost must therefore improve the density at coarse levels, where the first protocol operates and where the gap between $\rho_0$ and $\rho$ is largest.

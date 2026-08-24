@@ -1,0 +1,133 @@
+# Single source of truth for all numbers in the paper.
+# Every numerical claim in the text must reference a key here.
+# Source: diagnose_option_a_2116734.out, diagnose_level_clamp_2116745.out,
+#         scf_multi_2116941.out, 2026-08-10-scf-test-postmortem.md,
+#         train_refine_only_2119939.out, post_refine_2119940.out
+
+architecture:
+  k: 8
+  k_cubed: 512
+  n_faces: 6
+  n_levels: 19
+  level_embed_dim: 32
+  face_embed_dim: 8
+  halo_encoder_hidden: 256
+  halo_encoder_out: 128
+  trunk_dims: [1024, 512, 256]
+  trunk_input_dim: 1792  # 768 (halo) + 1024 (center)
+  trunk_input_dim_parent: 2816  # +1024 parent features
+  total_params_singletask: 3043600  # from diagnostic log
+  total_params_parent: 4090000  # ~4.09M with parent features
+  dropout: 0.1
+  residual: true
+
+dataset:
+  n_molecules_total: 51
+  n_train: 45
+  n_val: 3
+  n_test: 3
+  val_molecules: [ethanol, so2, hnnn]
+  test_molecules: [h2o2, c2h2, glyoxal]
+  n_samples_pos: 107861  # training positive samples
+  n_val_pos: 8587
+  size_gb: 5.29
+  k: 8
+  thresh: 1.0e-6
+  source: W4-11
+
+density_prediction:
+  # Unclamped model on val set
+  unclamped_val_ratio: 1113.18
+  # Single-task ablation (from postmortem Decision 15)
+  multitask_train_ratio: 2.99
+  multitask_val_ratio: 2.84
+  singletask_train_ratio: 1.006
+  singletask_val_ratio: 1.004
+  # Per-level breakdown (from diagnose_option_a_2116734.out)
+  # ratio = model_MSE / baseline_MSE
+  per_level:
+    level_0:  {count: 3,    baseline: 7.675e-10, model: 1.029e+00, ratio: 1341361595.50}
+    level_1:  {count: 24,   baseline: 7.562e-07, model: 7.634e-07, ratio: 1.01}
+    level_2:  {count: 192,  baseline: 3.860e-07, model: 3.931e-07, ratio: 1.02}
+    level_3:  {count: 192,  baseline: 7.562e-07, model: 7.633e-07, ratio: 1.01}
+    level_4:  {count: 192,  baseline: 1.151e-06, model: 1.158e-06, ratio: 1.01}
+    level_5:  {count: 192,  baseline: 1.664e-06, model: 1.672e-06, ratio: 1.00}
+    level_6:  {count: 416,  baseline: 9.648e-07, model: 9.729e-07, ratio: 1.01}
+    level_7:  {count: 720,  baseline: 6.437e-07, model: 6.640e-07, ratio: 1.03}
+    level_8:  {count: 912,  baseline: 4.170e-07, model: 4.584e-07, ratio: 1.10}
+    level_9:  {count: 1216, baseline: 2.238e-07, model: 2.499e-07, ratio: 1.12}
+    level_10: {count: 1120, baseline: 1.790e-07, model: 1.756e-07, ratio: 0.98}
+    level_11: {count: 928,  baseline: 1.713e-07, model: 1.358e-07, ratio: 0.79}
+    level_12: {count: 1056, baseline: 7.942e-08, model: 5.343e-08, ratio: 0.67}
+    level_13: {count: 784,  baseline: 4.160e-08, model: 2.269e-08, ratio: 0.55}
+    level_14: {count: 368,  baseline: 1.175e-08, model: 4.818e-09, ratio: 0.41}
+    level_15: {count: 208,  baseline: 6.068e-09, model: 7.677e-09, ratio: 1.27}
+    level_16: {count: 32,   baseline: 5.745e-09, model: 1.627e-08, ratio: 2.83}
+    level_17: {count: 32,   baseline: 3.817e-09, model: 2.038e-08, ratio: 5.34}
+  levels_beating_baseline: [10, 11, 12, 13, 14]
+  # Level-clamped results (from diagnose_level_clamp_2116745.out)
+  clamped_10_14:
+    val_ratio: 0.97
+    val_mse: 3.139e-07
+    val_baseline: 3.234e-07
+    samples_from_model: 4256
+    total_samples: 8587
+  clamped_8_14:
+    val_ratio: 1.00
+
+scf_test:
+  # Initial unclamped test (Decision 16, postmortem)
+  unclamped:
+    molecule: ch3oh
+    baseline_energy: -114.850
+    ml_energy: -114.263
+    baseline_iters: 10
+    ml_iters: 30
+    baseline_dipole: 0.645
+    ml_dipole: 2.015
+    density_l2_rho0: 1.184
+    density_l2_ml: 1.955
+    density_ratio: 1.65
+    leaves_worsened_pct: 85
+  # Level-clamped test (Decision 17)
+  clamped:
+    molecule: ch3oh
+    baseline_energy: -114.85038034
+    ml_energy: -114.85038032
+    baseline_iters: 12
+    ml_iters: 12
+  # Multi-molecule test (Decision 24, scf_multi_2116941.out)
+  multi_molecule:
+    n_comparisons: 14
+    n_identical: 14
+    results:
+      - {molecule: ch3oh,   n_electrons: 18, thresh: "1e-6", baseline: 12, ml: 12, baseline_energy: -114.85038034, ml_energy: -114.85038032}
+      - {molecule: ch3oh,   n_electrons: 18, thresh: "1e-8", baseline: 12, ml: 12, baseline_energy: -114.85038034, ml_energy: -114.85038032}
+      - {molecule: ethanol, n_electrons: 26, thresh: "1e-6", baseline: 12, ml: 12, baseline_energy: -153.81559584, ml_energy: -153.81559579}
+      - {molecule: ethanol, n_electrons: 26, thresh: "1e-8", baseline: 12, ml: 12, baseline_energy: -153.81559584, ml_energy: -153.81559579}
+      - {molecule: so2,     n_electrons: 32, thresh: "1e-6", baseline: 14, ml: 14, baseline_energy: -546.34469275, ml_energy: -546.34469263}
+      - {molecule: so2,     n_electrons: 32, thresh: "1e-8", baseline: 14, ml: 14, baseline_energy: -546.34469265, ml_energy: -546.34469262}
+      - {molecule: hnnn,    n_electrons: 22, thresh: "1e-6", baseline: 13, ml: 13, baseline_energy: -163.57199524, ml_energy: -163.57199523}
+      - {molecule: hnnn,    n_electrons: 22, thresh: "1e-8", baseline: 13, ml: 13, baseline_energy: -163.57199524, ml_energy: -163.57199523}
+      - {molecule: h2o2,    n_electrons: 18, thresh: "1e-6", baseline: 12, ml: 12, baseline_energy: -150.55376660, ml_energy: -150.55376665}
+      - {molecule: h2o2,    n_electrons: 18, thresh: "1e-8", baseline: 12, ml: 12, baseline_energy: -150.55376660, ml_energy: -150.55376665}
+      - {molecule: c2h2,    n_electrons: 14, thresh: "1e-6", baseline: 10, ml: 10, baseline_energy:  -76.63064903, ml_energy:  -76.63064903}
+      - {molecule: c2h2,    n_electrons: 14, thresh: "1e-8", baseline: 10, ml: 10, baseline_energy:  -76.63064903, ml_energy:  -76.63064903}
+      - {molecule: glyoxal, n_electrons: 30, thresh: "1e-6", baseline: 13, ml: 13, baseline_energy: -226.15979738, ml_energy: -226.15979728}
+      - {molecule: glyoxal, n_electrons: 30, thresh: "1e-8", baseline: 13, ml: 13, baseline_energy: -226.15979738, ml_energy: -226.15979728}
+
+parent_features:
+  # Decision 22, postmortem
+  total_params: 4090000
+  result: "no effect"
+  per_level_identical: true
+
+tree_prediction:
+  # Decision 25-27, postmortem
+  multitask_f1: 0.857
+  refine_only_f1: 0.860
+  f1_delta: 0.003
+  treewalk_baseline_iters: 12
+  treewalk_ml_iters: 31
+  treewalk_baseline_energy: -114.85038034
+  treewalk_ml_energy: -114.85037863

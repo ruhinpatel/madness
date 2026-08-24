@@ -1,0 +1,43 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+We trained three local ML models to accelerate SCF convergence in
+MADNESS and all three failed. A level-clamped density predictor achieved
+MSE ratios of 0.41--0.98$\times$ baseline at fine tree levels (10--14)
+and 1.00--1.12$\times$ at coarse levels (1--9), producing identical SCF
+iteration counts across all 14 molecule-threshold combinations.
+A parent-node feature model expanded the architecture to 4.1M parameters
+and doubled the input dimension, yet reproduced the same per-level MSE
+ratios as the base model, confirming that additional capacity extracts no
+new signal from the available inputs. A tree structure predictor reached
+F1\,=\,0.860 but required 31 SCF iterations versus 12 for the
+promolecular guess, a 2.6$\times$ degradation.
+
+The common root cause is an input signal bottleneck at coarse tree
+levels. MADNESS converges its SCF solution at levels 1--9 before
+refining finer scales, so only coarse-level density corrections can
+reduce iteration counts. The promolecular density and nuclear potential
+at those levels encode atomic superposition and electrostatics but carry
+no electron-electron interaction information. No local model operating on
+these inputs can produce the exchange-correlation corrections needed to
+improve the coarse-level density, regardless of architecture or training
+procedure.
+
+This mechanistic explanation (that multi-scale solvers gate convergence
+at their coarsest resolution, where atom-centered inputs lack the
+relevant physics) is not specific to MADNESS or to density functional
+theory. It applies whenever an ML model receives only single-body inputs
+and targets a quantity governed by many-body interactions, and the
+iterative solver queries coarse scales first. Recognizing this pattern
+before training avoids the cycle of architecture search and
+hyperparameter tuning that preceded our diagnosis.
+
+One path remains open. A converged Gaussian-basis density already
+contains exchange-correlation physics and, when used directly as a
+MADNESS starting guess, reduces SCF iteration counts. An ML model
+trained on the small residual between the Gaussian-basis density and the
+converged MRA density would operate on an input that does not suffer from
+the signal bottleneck identified here. Whether this residual is
+learnable with local features, and whether the resulting speedup
+justifies the cost of the Gaussian-basis calculation, are questions that
+require new experiments.

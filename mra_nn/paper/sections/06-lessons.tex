@@ -1,0 +1,75 @@
+\section{Lessons and Path Forward}
+\label{sec:lessons}
+
+Three observations from this work generalize beyond the MRA-NN setting
+and may inform future attempts to couple ML models with iterative
+scientific solvers.
+
+Input signal quality determines the ceiling of any downstream model,
+independent of architecture capacity. Our parent model doubled the
+input dimension (2816 vs.\ 1792 features) and added 34\% more
+parameters (4.1M vs.\ 3.0M), yet reproduced the per-level MSE ratios
+of the base model almost exactly. The single-task ablation confirmed
+that multi-task interference was a real training pathology, but
+removing it only brought the model to parity with $\rho_0$, not beyond
+it. The fundamental limitation is that the promolecular density and
+nuclear potential carry no electron-electron correlation signal. No
+amount of nonlinear capacity can extract exchange-correlation physics
+from inputs that do not encode it.
+
+Fine-scale accuracy does not imply solver acceleration. The level-clamped
+model achieved MSE ratios of 0.41--0.98$\times$ baseline at levels
+10--14, a measurable and statistically significant improvement over
+$\rho_0$. Yet SCF injection tests produced identical iteration counts
+across all 14 molecule-threshold combinations (7 molecules, 2
+thresholds). The explanation is structural: MADNESS
+protocols~\cite{harrison2016madness} refine from coarse to fine,
+and iteration count is determined by the coarsest protocol stage
+where the initial density deviates from the converged solution.
+Improvements at spatial scales finer than the first protocol
+threshold provide no leverage on convergence. Any ML model targeting
+solver acceleration must improve the density at the resolution the
+solver actually queries first, not at the resolution where data is
+most abundant.
+
+Multi-task interference in uncertainty-weighted losses can silently
+undermine the primary objective. Kendall uncertainty
+weighting~\cite{kendall2018multitask} allowed the learned scale
+parameter $\sigma_{\rho_s}$ to grow without bound, progressively
+zeroing the density gradient while the classification head consumed
+the entire learning signal. The resulting model was 2.99$\times$
+worse than $\rho_0$ on density prediction, yet the aggregate loss
+decreased monotonically, masking the failure. A subsequent
+configuration flag (\texttt{refine\_focused}) appeared to fix this
+by switching the checkpoint selection metric to refinement F1, but it
+left the loss function unchanged; the density head still trained under
+the corrupted gradient. Refine-only training with pure focal loss
+achieved F1\,=\,0.860, a gain of only 0.003 over the multi-task
+formulation (F1\,=\,0.857). The broader warning is that multi-task
+losses with learned weighting parameters require per-head monitoring
+of both loss and scale; aggregate convergence is not a reliable
+diagnostic.
+
+\subsection{Path Forward: Gaussian-Basis Density as ML Input}
+\label{sec:path_forward}
+
+The negative results above point to a concrete next step. If the
+bottleneck is input signal quality, the remedy is to supply an input
+that already contains exchange-correlation physics. A natural candidate
+is the converged density from a Gaussian-basis DFT calculation (e.g.,
+Dalton), projected onto the MRA grid. Preliminary experiments by
+collaborators show that using the Dalton density directly as the
+MADNESS starting guess reduces SCF iteration counts, confirming that
+the missing signal is the core issue.
+
+This reframes the ML problem from predicting a large correction
+(promolecular $\rho_0$ $\to$ converged MRA $\rho$) to predicting a
+small residual (Gaussian-basis $\rho_{\text{GTO}}$ $\to$ converged MRA
+$\rho$). The residual is dominated by basis-set truncation artifacts
+near nuclei and in diffuse tails, both of which are spatially localized
+and well-suited to the local halo-feature architecture already
+developed. We plan to construct training data by pairing Dalton
+densities with converged MADNESS densities for the same molecules and
+to retrain the single-task model on the resulting residuals. No
+results from this approach are available yet, and the magnitude of the
+achievable speedup remains an open question.

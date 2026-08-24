@@ -1,0 +1,58 @@
+\documentclass[journal=jctcce,manuscript=article]{achemso}
+
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{hyperref}
+
+\title{Why Local ML Models Cannot Accelerate SCF Convergence
+in Multiresolution Analysis: Lessons from Systematic Architecture Search}
+
+\author{Ruhin Patel}
+\affiliation{Department of Applied Mathematics and Statistics, Stony Brook University, Stony Brook, NY 11794}
+\author{Adrian Hurtado}
+\affiliation{Department of Chemistry, Stony Brook University, Stony Brook, NY 11794}
+\author{Robert J.~Harrison}
+\affiliation{Department of Applied Mathematics and Statistics, Stony Brook University, Stony Brook, NY 11794}
+\affiliation{Institute for Advanced Computational Science, Stony Brook University, Stony Brook, NY 11794}
+
+\begin{document}
+
+\begin{abstract}
+We present a systematic investigation of machine learning approaches
+to accelerating self-consistent field (SCF) convergence in MADNESS,
+a multiresolution analysis (MRA) framework for density functional
+theory. Using a FiLM-conditioned MLP with same-level halo neighbors
+(MRANet, 3.0M parameters), we trained on 51 W4-11 molecules and
+evaluated three strategies: density coefficient prediction, parent
+node augmentation, and tree structure prediction. The density
+predictor achieved MSE ratios of 0.41--0.98$\times$ baseline at
+fine tree levels (10--14) but 1.00--1.12$\times$ at coarse levels
+(1--9), where SCF convergence is determined. Injecting the predicted
+density into MADNESS produced identical SCF iteration counts across
+all 14 molecule-threshold combinations tested. Parent node features
+(4.1M parameters) did not change the coarse-level ratios. A
+refinement classifier reached F1\,=\,0.860 but increased SCF
+iterations 2.6$\times$. All three strategies hit the same limit:
+at coarse tree levels, the promolecular density and nuclear potential
+do not encode the electron-electron interactions needed for density
+corrections. We extract three transferable lessons for ML applied to
+multi-scale iterative solvers and propose Gaussian-basis densities as
+a richer input signal.
+\end{abstract}
+
+\input{sections/01-introduction}
+\input{sections/02-background}
+\input{sections/03-method}
+\input{sections/04-results}
+\input{sections/05-analysis}
+\input{sections/06-lessons}
+\input{sections/07-conclusion}
+
+\begin{acknowledgement}
+% TODO: funding acknowledgements
+\end{acknowledgement}
+
+\bibliography{references}
+
+\end{document}

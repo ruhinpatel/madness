@@ -1,0 +1,20 @@
+\section{Introduction}\label{sec:introduction}
+
+MADNESS~\cite{harrison2016madness} is a multiresolution analysis (MRA) framework for density functional theory that represents functions as adaptive octree structures of polynomial scaling coefficients.
+The tree refines locally where the function has fine-scale features and remains coarse elsewhere, achieving systematic accuracy without a fixed basis set.
+Within a MADNESS DFT calculation, self-consistent field (SCF) iteration dominates wall time: each iteration rebuilds the Coulomb and exchange-correlation potentials, solves the bound-state Helmholtz equation for every orbital, and updates the density.
+The standard initial density guess is the promolecular density $\rho_0$, a superposition of isolated spherical atomic densities.
+Because $\rho_0$ contains no bonding, charge transfer, or exchange-correlation information, the SCF procedure typically requires 8--15 iterations to converge.
+A more accurate starting density would reduce the iteration count and, proportionally, the total cost.
+
+Machine learning models for electron density prediction have shown that neural networks can map nuclear geometry to real-space charge densities with useful accuracy~\cite{gong2025gedcrn}.
+These approaches typically predict density on fixed Cartesian grids and project the result onto whatever basis the solver requires.
+Working directly in the native MRA representation sidesteps grid-to-tree projection and preserves the adaptive structure that makes MADNESS efficient.
+The octree further decomposes the prediction problem into per-node regression tasks with local spatial context available from same-level neighbor nodes, a natural inductive bias for an MLP architecture.
+
+We present a systematic investigation of three ML strategies for accelerating SCF convergence in MADNESS: direct prediction of converged density coefficients, parent-augmented coefficient prediction, and tree structure (refinement) prediction.
+All three use a FiLM-conditioned MLP (MRANet) with same-level halo neighbor features as input.
+Despite strong per-node regression accuracy at fine tree levels, none of the strategies reduced SCF iteration count when the predicted density was used as an initial guess.
+We trace this failure to an input signal bottleneck: at the coarse tree levels that determine SCF convergence behavior, the promolecular density $\rho_0$ and nuclear potential $V_\mathrm{nuc}$ lack the electron-electron interaction information needed to predict density corrections.
+The model learns an accurate identity mapping at fine levels (where $\rho_0 \approx \rho$) but cannot extract the missing physics at coarse levels.
+From this negative result we extract three lessons transferable to ML applied to multi-scale iterative solvers: (1) input signal quality at the scale that matters for the solver sets the model ceiling, regardless of aggregate accuracy; (2) fine-level accuracy does not imply solver acceleration; and (3) multi-task interference between level-dependent objectives can silently degrade training.

@@ -1,0 +1,105 @@
+\documentclass[journal=jctcce]{achemso}
+\usepackage{booktabs, longtable}
+
+\title{Supporting Information: Why Local ML Models Cannot Accelerate
+SCF Convergence in Multiresolution Analysis}
+\author{Ruhin Patel, Adrian Hurtado, Robert J.~Harrison}
+
+\begin{document}
+
+\section{Full Decision Audit}
+
+Table~\ref{tab:decisions} lists all 27 design decisions made during
+the project, with dates, descriptions, results, and verdicts. The
+audit is presented as a resource for practitioners designing ML
+models for iterative scientific solvers.
+
+\begin{longtable}{clp{5cm}p{4cm}l}
+\caption{Complete decision audit for the MRA-NN project. Decisions
+are numbered chronologically. ``Sound'' indicates the decision was
+technically correct; ``Failed'' indicates it produced poor results;
+``Root cause'' identifies decisions that directly caused failure modes.}
+\label{tab:decisions} \\
+\toprule
+\# & Date & Decision & Result & Verdict \\
+\midrule
+\endfirsthead
+\midrule
+\# & Date & Decision & Result & Verdict \\
+\midrule
+\endhead
+1 & Pre-Jul & MRA coefficient space & Avoids grid projection & Sound \\
+2 & Jul 16 & 15 W4-11 molecules & Data starvation at extreme levels & Insufficient \\
+3 & Jul 16 & Three-step MADNESS dump & Pipeline works correctly & Sound \\
+4 & Jul 27 & All nodes + below-leaf negatives & 87\% negative imbalance & Problematic \\
+5 & Jul 28 & FiLM MLP, 6 same-level halos & No parent/cross-level info & Root cause \\
+6 & Jul 28 & Delta-rho target & Superseded by residual & Superseded \\
+7 & Jul 28 & Kendall uncertainty loss & sigma unbounded, rho gradient zeroed & Failed \\
+8 & Jul 28 & lr=1e-3, batch=4096 & Oscillation; fixed to 2e-4 & Fixed \\
+9 & Jul 30 & Switch to k=8, direct rho target & Production precision & Sound \\
+10 & Jul 30 & Residual connection & Without it, 1200x worse & Sound \\
+11 & Jul 30 & 10x positive sample weight & Partial fix for 87\% negatives & Band-aid \\
+12 & Jul 30 & Clamp sigma $\leq$ 0 & Violates auto-balancing premise & Band-aid \\
+13 & Jul 31 & Positive-only checkpoint metric & Correct fix & Sound \\
+14 & Jul 31 & Validation molecule switch & Masked generalization problem & Problematic \\
+15 & Jul 31 & Single-task ablation & Train 2.99x $\to$ 1.006x & Key experiment \\
+16 & Aug 5 & Compress-reconstruct inference & MRA consistency & Sound \\
+17 & Aug 10 & Level clamping (10--14) & 0.97x MSE, 12=12 iterations & Sound \\
+18 & Aug 10 & Parent features (concat) & Pending training & Sound \\
+19 & Aug 10 & Level 0 zero-padding & 3 samples, masked anyway & Sound \\
+20 & Aug 10 & Train from scratch (parent) & First layer shape changed & Sound \\
+21 & Aug 10 & rho0/vnuc parents only & Avoids data leak & Sound \\
+22 & Aug 11 & Parent features trained & Identical per-level ratios & Failed \\
+23 & Aug 11 & Approach 3 then Approach 2 & GNN rejected, pragmatic path & Sound \\
+24 & Aug 11 & Multi-molecule SCF test & 14/14 identical iterations & Closed \\
+25 & Aug 11 & Pivot to tree prediction & Binary classification & Sound \\
+26 & Aug 11 & Multi-task refine training & F1=0.857, sigma corrupted & Failed \\
+27 & Aug 14 & Refine-only training & F1=0.860, arch.\ limit & Ceiling \\
+\bottomrule
+\end{longtable}
+
+\section{Training Hyperparameters}
+
+\begin{table}[htbp]
+\centering
+\caption{Training configurations for the final single-task and
+refine-only models.}
+\begin{tabular}{lcc}
+\toprule
+Parameter & Single-task & Refine-only \\
+\midrule
+Optimizer & AdamW & AdamW \\
+Learning rate & $2 \times 10^{-4}$ & $2 \times 10^{-4}$ \\
+Weight decay & $10^{-4}$ & $10^{-4}$ \\
+Warmup epochs & 5 & 5 \\
+Scheduler & Cosine & Cosine \\
+Min LR & $10^{-6}$ & $10^{-6}$ \\
+Batch size & 4096 & 4096 \\
+Max epochs & 120 & 120 \\
+Patience & 20 & 20 \\
+Dropout & 0.1 & 0.1 \\
+AMP & Yes & Yes \\
+Loss & Weighted MSE & Focal ($\gamma=2$, $\alpha=0.75$) \\
+Positive weight & 10 & N/A \\
+Level mask min & 200 & 200 \\
+Total parameters & 3.04M & 3.04M \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Per-Molecule SCF Data}
+
+Extended version of Table~1 with per-protocol iteration counts and
+final energies for both thresholds. All molecules computed at
+$k=8$, LDA functional.
+
+% TODO: Fill from scf_multi_2116941.out
+
+\section{Per-Level Diagnostic Details}
+
+Full per-level MSE breakdown for validation, test, and training spot
+check molecules, from \texttt{diagnose\_option\_a\_2116734.out}.
+
+% TODO: Fill from diagnostic log
+
+\end{document}
