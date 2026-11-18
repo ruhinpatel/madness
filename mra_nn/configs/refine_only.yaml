@@ -89,6 +89,7 @@ training:
 loss:
   focal_gamma: 2.0
   focal_alpha: 0.75
+  refine_pos_weight: 10.0
 
 refine_only: true
 

@@ -41,12 +41,19 @@ All three ML approaches to SCF acceleration using MRANet hit the same architectu
 - Design spec: `docs/superpowers/specs/2026-08-22-negative-results-paper-design.md`
 - Implementation plan: `docs/superpowers/plans/2026-08-22-negative-results-paper.md`
 - Paper drafts: `paper/` directory (sections/, figures/, tables/)
-- Status: plan written, execution not started
+- Status: **COMPLETE, PUSHED** — all 9 tasks done, pushed to `feat/mra-nn-data` on GitHub (2026-08-26)
+  - Commits: 4ca3c9944 (draft), 93b4346421 (PDF + figures), 3a36cf71b (figures enabled + recompile)
+  - 19-page PDF at `paper/main.pdf` (achemso/JCTC template, 358K with figures embedded)
+  - 7 sections, 3 figure PDFs, 1 SCF table, 10 references, supplementary with 27-decision audit
+  - All numbers verified against `paper/data/extracted_results.yaml`
+- **Next:** Adrian + Harrison review → JCTC submission
 
-### Track 2: Path 2 — Dalton Density as ML Input
-- Use Dalton (Gaussian basis) density instead of rho0 → predict small Dalton→MRA residual
-- Email sent to Adrian (2026-08-22) with technical questions about his Dalton→MADNESS pipeline
-- Status: blocked on Adrian's reply
+### Track 2: Dalton→MADNESS Optimization — NOW ACTIVE (reframed 2026-09-10)
+- **New framing:** Dalton pipeline already works empirically (Adrian confirmed). ML problem is optimization, not density prediction.
+- **(Q1) Basis set selection:** given (molecule, property) → which basis minimizes `cost(Dalton at X) + cost(MADNESS from X)`?
+- **(Q2) Protocol depth:** given a Dalton initial guess → which starting protocol step minimizes total wall time?
+- **Blocking on:** (a) Adrian sharing Dalton pipeline (in his main branch), (b) Adrian's notes on MADNESS internals
+- No implementation until pipeline is shared and notes received
 
 ### Final Job Results (Decision 27)
 - 2119939: refine-only training — COMPLETED, best val refine F1=0.8599, gate FAIL

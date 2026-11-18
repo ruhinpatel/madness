@@ -337,4 +337,17 @@ After Option A (or A+B), re-run the SCF convergence test:
 - **Lesson:** Config flag names can lie. The flag looked like it changed the training objective but only changed the checkpoint metric. Should have been caught by tracing the code path before submitting. Verification rule added to `mra_nn/CLAUDE.md`.
 - **Fix:** Created `RefineOnlyLoss` in `losses.py` — pure focal loss on refine logit, zero contribution from rho_s/log_dnorm. New `refine_only: true` mode in `train.py` and `configs/refine_only.yaml`.
 - **Next:** Job 2117581 (mra-rfo) submitted — refine-only training. If F1 > 0.95, run SCF tree-walk test. If F1 < 0.95, the bottleneck is architectural, not multi-task interference.
-- **Verdict:** Pending job 2117581 results.
+- **Verdict:** Fix confirmed correct (multi-task interference removed). But F1 barely improved — see Decision 27.
+
+### Decision 27: Refine-Only Result — Architectural Limit Confirmed
+- **When:** 2026-08-14 (job 2119939, checkpoint 2026-08-14_07-00)
+- **What:** Trained with `RefineOnlyLoss` — pure focal loss, zero contribution from rho_s/log_dnorm heads. Best val refine F1: 0.8599 (epoch 95). Early stopped at epoch 115 (patience=20). Gate FAIL (need 0.95).
+- **SCF tree-walk test (job 2119940):** Baseline 12 iterations, ML tree-walk 31 iterations. Correct electronic state recovered (energy -114.85038034 vs -114.85037863, agrees to 7 sig figs), but iteration count 2.6× worse.
+- **Key comparison with Decision 26:** Multi-task model (F1=0.857) vs refine-only model (F1=0.860). Removing multi-task interference moved F1 by +0.003. The multi-task hypothesis is definitively eliminated.
+- **Root cause confirmed:** The model's receptive field — 6 same-level face-adjacent neighbors — does not contain enough information for refinement decisions. Refinement at level N depends on whether the physical feature (nuclear cusp, bond, lone pair) below requires finer resolution. That information lives at levels 0 through N-1 and in the global molecular geometry, neither of which the model sees. Parent features (Decision 22) didn't help because parent rho0/vnuc are smooth and low-information — the useful signal would be the parent's *correction*, which is what we're trying to predict.
+- **What's exhausted:** All three ML approaches to SCF acceleration using the current MRANet architecture:
+  1. Density coefficient prediction → fine-level wins, zero SCF impact (Decision 24)
+  2. Tree structure prediction (multi-task) → F1=0.857, multi-task interference (Decision 26)
+  3. Tree structure prediction (refine-only) → F1=0.860, architectural limit (this decision)
+- **What's NOT exhausted:** (a) Architectures with larger receptive fields (GNN/message-passing on the tree); (b) Different ML roles beyond SCF initial guess; (c) Fine-level density prediction for post-SCF properties where fine-level accuracy matters.
+- **Verdict:** Current architecture is at its ceiling for both density regression and refinement classification. Next direction requires either a fundamentally different architecture or a different problem formulation. Pending discussion with Adrian.

@@ -148,13 +148,14 @@ def evaluate(
         all_targets = torch.cat(all_ref_targets)
         metrics["refine_f1"] = compute_refine_f1(all_logits, all_targets)
 
-    # Positive-only rho_s MSE — the gate metric
-    if pred_rs_pos:
-        metrics["pos_rho_s_mse"] = torch.nn.functional.mse_loss(
-            torch.cat(pred_rs_pos), torch.cat(true_rs_pos)
-        ).item()
-    else:
-        metrics["pos_rho_s_mse"] = float("inf")
+    # Positive-only rho_s MSE — the gate metric (not used in refine_only mode)
+    if not refine_only:
+        if pred_rs_pos:
+            metrics["pos_rho_s_mse"] = torch.nn.functional.mse_loss(
+                torch.cat(pred_rs_pos), torch.cat(true_rs_pos)
+            ).item()
+        else:
+            metrics["pos_rho_s_mse"] = float("inf")
 
     return metrics
 
