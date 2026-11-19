@@ -4,6 +4,12 @@ One section per contact chain. Newest entry first within each chain. Record dead
 
 ## Adrian (collaborator/advisor)
 
+### 2026-11-19 — Received (Adrian) + Action: paper moved to separate repo
+- **Adrian replied (2026-11-19):** Wants to review the paper together (joint session TBD). Flagged that the paper was in the MADNESS source tree — asked to move it to a separate GitHub repo.
+- **Action taken:** Created `ruhinpatel/mra-nn-paper` (private) on GitHub; paper source (25 files, all sections/figures/data/tables) pushed at commit 2603d53. Local copy at `/gpfs/projects/rjh/ruhin/mra-nn-paper/`.
+- **Still pending Adrian:** JCTC paper review (with Robert), Dalton pipeline (his main branch), MADNESS internals notes.
+- **Next:** Propose a time for the joint paper review session.
+
 ### 2026-11-17 — Sent (Ruhin): MRA-NN status recap + Dalton pipeline ask
 - **Trigger:** Adrian asked to be reminded where the "CNN project" (MRA-NN) ended up.
 - **Sent:** recap of the architectural-limit result (three ML roles, same receptive-field wall; F1 plateau ~0.86 vs 0.95 gate; refine-only moved F1 by +0.003; 14/14 molecules identical SCF iteration counts) → became the JCTC negative-results paper (with Adrian + Robert for review) → Track 2 reframe (2026-09-10) to Dalton-guess optimization (Q1 basis selection, Q2 protocol depth).
